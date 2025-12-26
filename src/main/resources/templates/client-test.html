@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth2 클라이언트 테스트 - Auth Server</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #667eea;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .client-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .client-info p {
+            margin-bottom: 10px;
+            color: #555;
+        }
+        .client-info strong {
+            color: #333;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-section h2 {
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .url-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 13px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: background 0.3s ease;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .code-block .comment {
+            color: #6a9955;
+        }
+        .code-block .string {
+            color: #ce9178;
+        }
+        .step {
+            margin-bottom: 25px;
+        }
+        .step-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .step-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .scope-badge {
+            display: inline-block;
+            background: #e9ecef;
+            color: #495057;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/clients" class="back-link">← 클라이언트 목록</a>
+        <h1>OAuth2 Authorization Code 테스트</h1>
+
+        <!-- 클라이언트 정보 -->
+        <div class="client-info">
+            <p><strong>클라이언트 ID:</strong> <span th:text="${client.clientId}">client-id</span></p>
+            <p><strong>클라이언트 이름:</strong> <span th:text="${client.clientName}">Client Name</span></p>
+            <p>
+                <strong>Scopes:</strong>
+                <span th:each="scope : ${client.scopes}" class="scope-badge" th:text="${scope}">scope</span>
+            </p>
+            <p>
+                <strong>Redirect URIs:</strong>
+                <span th:each="uri : ${client.redirectUris}" th:text="${uri}" style="display: block; font-family: monospace;">uri</span>
+            </p>
+        </div>
+
+        <!-- Authorization Code Flow 테스트 -->
+        <div class="test-section">
+            <h2>Authorization Code Flow 테스트</h2>
+
+            <div class="step">
+                <div class="step-title"><span class="step-number">1</span> Authorization 요청</div>
+                <p style="margin-bottom: 10px; color: #666;">아래 버튼을 클릭하면 인가 페이지로 이동합니다. 로그인 후 동의하면 redirect_uri로 authorization code가 전달됩니다.</p>
+                <div class="url-box" th:text="${authorizationUrl}">authorization url</div>
+                <a th:href="${authorizationUrl}" class="btn btn-primary" target="_blank">Authorization 요청 시작</a>
+            </div>
+
+            <div class="step">
+                <div class="step-title"><span class="step-number">2</span> Token 교환</div>
+                <p style="margin-bottom: 10px; color: #666;">Authorization code를 받은 후, 아래 curl 명령어로 access token을 요청합니다:</p>
+                <div class="code-block">
+<span class="comment"># Authorization Code를 Access Token으로 교환</span>
+curl -X POST http://localhost:9000/oauth2/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -u "<span th:text="${client.clientId}">client_id</span>:YOUR_CLIENT_SECRET" \
+  -d "grant_type=authorization_code" \
+  -d "code=AUTHORIZATION_CODE" \
+  -d "redirect_uri=<span th:text="${#lists.isEmpty(client.redirectUris) ? '' : client.redirectUris.toArray()[0]}">redirect_uri</span>"
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-title"><span class="step-number">3</span> Token 응답 예시</div>
+                <div class="code-block">
+{
+  <span class="string">"access_token"</span>: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  <span class="string">"refresh_token"</span>: "abc123...",
+  <span class="string">"token_type"</span>: "Bearer",
+  <span class="string">"expires_in"</span>: 3600,
+  <span class="string">"scope"</span>: "openid profile email",
+  <span class="string">"id_token"</span>: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-title"><span class="step-number">4</span> UserInfo 조회</div>
+                <div class="code-block">
+<span class="comment"># Access Token으로 사용자 정보 조회</span>
+curl -X GET http://localhost:9000/userinfo \
+  -H "Authorization: Bearer ACCESS_TOKEN"
+                </div>
+            </div>
+        </div>
+
+        <!-- Token Refresh -->
+        <div class="test-section">
+            <h2>Refresh Token 사용</h2>
+            <div class="code-block">
+<span class="comment"># Refresh Token으로 새 Access Token 발급</span>
+curl -X POST http://localhost:9000/oauth2/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -u "<span th:text="${client.clientId}">client_id</span>:YOUR_CLIENT_SECRET" \
+  -d "grant_type=refresh_token" \
+  -d "refresh_token=REFRESH_TOKEN"
+            </div>
+        </div>
+
+        <!-- OIDC Discovery -->
+        <div class="test-section">
+            <h2>OIDC Discovery</h2>
+            <p style="margin-bottom: 10px; color: #666;">OpenID Connect Discovery 문서를 조회합니다:</p>
+            <div class="code-block">
+curl http://localhost:9000/.well-known/openid-configuration
+            </div>
+            <a href="http://localhost:9000/.well-known/openid-configuration" class="btn btn-secondary" target="_blank" style="margin-top: 15px;">Discovery 문서 보기</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,95 @@
+package com.example.authserver.controller;
+
+import com.example.authserver.dto.ClientRegistrationRequest;
+import com.example.authserver.service.OAuth2ClientService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.List;
+import java.util.Map;
+
+@Controller
+@RequestMapping("/clients")
+@RequiredArgsConstructor
+public class ClientController {
+
+    private final OAuth2ClientService clientService;
+
+    @GetMapping
+    public String listClients(Model model) {
+        List<Map<String, Object>> clients = clientService.findAllClients();
+        model.addAttribute("clients", clients);
+        model.addAttribute("clientRequest", new ClientRegistrationRequest());
+        return "clients";
+    }
+
+    @PostMapping("/register")
+    public String registerClient(@Valid @ModelAttribute("clientRequest") ClientRegistrationRequest request,
+                                 BindingResult result,
+                                 Model model,
+                                 RedirectAttributes redirectAttributes) {
+        if (result.hasErrors()) {
+            List<Map<String, Object>> clients = clientService.findAllClients();
+            model.addAttribute("clients", clients);
+            return "clients";
+        }
+
+        try {
+            RegisteredClient registeredClient = clientService.registerClient(request);
+            redirectAttributes.addFlashAttribute("successMessage",
+                "클라이언트가 등록되었습니다: " + registeredClient.getClientId());
+            return "redirect:/clients";
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("errorMessage", e.getMessage());
+            List<Map<String, Object>> clients = clientService.findAllClients();
+            model.addAttribute("clients", clients);
+            return "clients";
+        }
+    }
+
+    @PostMapping("/delete/{clientId}")
+    public String deleteClient(@PathVariable String clientId, RedirectAttributes redirectAttributes) {
+        try {
+            clientService.deleteClient(clientId);
+            redirectAttributes.addFlashAttribute("successMessage", "클라이언트가 삭제되었습니다: " + clientId);
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/clients";
+    }
+
+    @GetMapping("/test/{clientId}")
+    public String testClient(@PathVariable String clientId, Model model) {
+        RegisteredClient client = clientService.findByClientId(clientId);
+        if (client == null) {
+            return "redirect:/clients";
+        }
+        model.addAttribute("client", client);
+        model.addAttribute("authorizationUrl", buildAuthorizationUrl(client));
+        return "client-test";
+    }
+
+    private String buildAuthorizationUrl(RegisteredClient client) {
+        StringBuilder url = new StringBuilder("http://localhost:9000/oauth2/authorize?");
+        url.append("response_type=code");
+        url.append("&client_id=").append(client.getClientId());
+
+        // 첫 번째 redirect_uri 사용
+        String redirectUri = client.getRedirectUris().stream().findFirst().orElse("");
+        url.append("&redirect_uri=").append(redirectUri);
+
+        // scopes
+        String scopes = String.join(" ", client.getScopes());
+        url.append("&scope=").append(scopes.replace(" ", "%20"));
+
+        url.append("&state=").append(java.util.UUID.randomUUID().toString().substring(0, 8));
+
+        return url.toString();
+    }
+}

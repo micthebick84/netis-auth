@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>홈 - Auth Server</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .home-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 500px;
+        }
+        .home-container h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        .user-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .user-info p {
+            margin-bottom: 10px;
+            color: #555;
+        }
+        .user-info strong {
+            color: #333;
+        }
+        .authorities {
+            margin-top: 15px;
+        }
+        .authority-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-right: 8px;
+            margin-bottom: 5px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 25px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: background 0.3s ease;
+        }
+        .btn:hover {
+            background: #c82333;
+        }
+        .logout-form {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .nav-links {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .nav-links a {
+            display: inline-block;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: opacity 0.3s ease;
+        }
+        .nav-links a:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="home-container">
+        <h1>Auth Server</h1>
+
+        <div class="nav-links">
+            <a th:href="@{/clients}">OAuth2 클라이언트 관리</a>
+        </div>
+
+        <div class="user-info">
+            <p><strong>사용자명:</strong> <span th:text="${username}">username</span></p>
+            <p><strong>이메일:</strong> <span th:text="${email}">email@example.com</span></p>
+
+            <div class="authorities">
+                <p><strong>권한:</strong></p>
+                <span th:each="authority : ${authorities}"
+                      class="authority-badge"
+                      th:text="${authority}">ROLE_USER</span>
+            </div>
+        </div>
+
+        <form th:action="@{/logout}" method="post" class="logout-form">
+            <button type="submit" class="btn">로그아웃</button>
+        </form>
+    </div>
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth2 클라이언트 관리 - Auth Server</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 600;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .form-group input:focus, .form-group select:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+        .form-row {
+            display: flex;
+            gap: 20px;
+        }
+        .form-row .form-group {
+            flex: 1;
+        }
+        .checkbox-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: background 0.3s ease;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+        .btn-info:hover {
+            background: #138496;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f8f9fa;
+            color: #333;
+            font-weight: 600;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #667eea;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .scope-badge {
+            display: inline-block;
+            background: #e9ecef;
+            color: #495057;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-right: 5px;
+            margin-bottom: 3px;
+        }
+        .error-text {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← 홈으로</a>
+        <h1>OAuth2 클라이언트 관리</h1>
+
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+        <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}"></div>
+
+        <!-- 클라이언트 등록 폼 -->
+        <div class="section">
+            <h2>새 클라이언트 등록</h2>
+            <form th:action="@{/clients/register}" th:object="${clientRequest}" method="post">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="clientId">클라이언트 ID *</label>
+                        <input type="text" id="clientId" th:field="*{clientId}" placeholder="my-application" required>
+                        <div th:if="${#fields.hasErrors('clientId')}" class="error-text" th:errors="*{clientId}"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="clientSecret">클라이언트 시크릿 *</label>
+                        <input type="password" id="clientSecret" th:field="*{clientSecret}" placeholder="최소 8자" required>
+                        <div th:if="${#fields.hasErrors('clientSecret')}" class="error-text" th:errors="*{clientSecret}"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="clientName">클라이언트 이름 *</label>
+                    <input type="text" id="clientName" th:field="*{clientName}" placeholder="My Application" required>
+                    <div th:if="${#fields.hasErrors('clientName')}" class="error-text" th:errors="*{clientName}"></div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="redirectUri">리다이렉트 URI *</label>
+                        <input type="url" id="redirectUri" th:field="*{redirectUri}" placeholder="http://localhost:8080/callback" required>
+                        <div th:if="${#fields.hasErrors('redirectUri')}" class="error-text" th:errors="*{redirectUri}"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="postLogoutRedirectUri">로그아웃 후 리다이렉트 URI</label>
+                        <input type="url" id="postLogoutRedirectUri" th:field="*{postLogoutRedirectUri}" placeholder="http://localhost:8080/">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Scopes (선택하지 않으면 기본값: openid, profile, email)</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="scopes" value="openid" checked> openid</label>
+                        <label><input type="checkbox" name="scopes" value="profile" checked> profile</label>
+                        <label><input type="checkbox" name="scopes" value="email" checked> email</label>
+                        <label><input type="checkbox" name="scopes" value="read"> read</label>
+                        <label><input type="checkbox" name="scopes" value="write"> write</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Grant Types (선택하지 않으면 기본값: authorization_code, refresh_token)</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="grantTypes" value="authorization_code" checked> Authorization Code</label>
+                        <label><input type="checkbox" name="grantTypes" value="refresh_token" checked> Refresh Token</label>
+                        <label><input type="checkbox" name="grantTypes" value="client_credentials"> Client Credentials</label>
+                        <label><input type="checkbox" name="grantTypes" value="password"> Password (Resource Owner)</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>설정</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="requireConsent" th:field="*{requireConsent}"> 동의 화면 필수</label>
+                        <label><input type="checkbox" name="requireProofKey" th:field="*{requireProofKey}"> PKCE 필수 (SPA용)</label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="accessTokenValiditySeconds">Access Token 유효 시간 (초)</label>
+                        <input type="number" id="accessTokenValiditySeconds" th:field="*{accessTokenValiditySeconds}" value="3600">
+                    </div>
+                    <div class="form-group">
+                        <label for="refreshTokenValiditySeconds">Refresh Token 유효 시간 (초)</label>
+                        <input type="number" id="refreshTokenValiditySeconds" th:field="*{refreshTokenValiditySeconds}" value="604800">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">클라이언트 등록</button>
+            </form>
+        </div>
+
+        <!-- 등록된 클라이언트 목록 -->
+        <div class="section">
+            <h2>등록된 클라이언트</h2>
+            <table th:if="${clients != null and !clients.isEmpty()}">
+                <thead>
+                    <tr>
+                        <th>클라이언트 ID</th>
+                        <th>이름</th>
+                        <th>Grant Types</th>
+                        <th>Scopes</th>
+                        <th>등록일</th>
+                        <th>작업</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="client : ${clients}">
+                        <td th:text="${client.CLIENT_ID}">client-id</td>
+                        <td th:text="${client.CLIENT_NAME}">Client Name</td>
+                        <td th:text="${client.AUTHORIZATION_GRANT_TYPES}">authorization_code</td>
+                        <td>
+                            <span th:each="scope : ${#strings.arraySplit(client.SCOPES, ',')}"
+                                  class="scope-badge" th:text="${scope}">scope</span>
+                        </td>
+                        <td th:text="${#temporals.format(client.CLIENT_ID_ISSUED_AT, 'yyyy-MM-dd HH:mm')}">2024-01-01</td>
+                        <td class="actions">
+                            <a th:href="@{/clients/test/{clientId}(clientId=${client.CLIENT_ID})}" class="btn btn-info">테스트</a>
+                            <form th:action="@{/clients/delete/{clientId}(clientId=${client.CLIENT_ID})}" method="post" style="display:inline"
+                                  onsubmit="return confirm('정말 삭제하시겠습니까?');">
+                                <button type="submit" class="btn btn-danger">삭제</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <p th:if="${clients == null or clients.isEmpty()}" style="color: #666; text-align: center; padding: 40px;">
+                등록된 클라이언트가 없습니다.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
