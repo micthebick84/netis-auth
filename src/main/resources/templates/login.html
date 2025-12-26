@@ -102,6 +102,48 @@
         .register-link a:hover {
             text-decoration: underline;
         }
+        .oauth2-option {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #e1e1e1;
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 500;
+            color: #333;
+        }
+        .checkbox-label input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+        }
+        .oauth2-settings {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e1e1e1;
+        }
+        .oauth2-settings label {
+            display: block;
+            margin-bottom: 5px;
+            margin-top: 10px;
+            color: #555;
+            font-size: 14px;
+        }
+        .oauth2-settings select,
+        .oauth2-settings input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .oauth2-settings select:focus,
+        .oauth2-settings input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
     </style>
 </head>
 <body>
@@ -125,8 +167,32 @@
                 <input type="password" id="password" name="password" placeholder="비밀번호를 입력하세요" required>
             </div>
 
+            <div class="form-group oauth2-option">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="oauth2_login" name="oauth2_login" value="true">
+                    <span>OAuth2 Authorization Code 발급받기</span>
+                </label>
+                <div id="oauth2-settings" class="oauth2-settings" style="display: none;">
+                    <label for="client_id">클라이언트</label>
+                    <select id="client_id" name="client_id">
+                        <option value="test-client">test-client</option>
+                        <option value="spa-client">spa-client (PKCE)</option>
+                    </select>
+                    <label for="redirect_uri">Redirect URI</label>
+                    <input type="text" id="redirect_uri" name="redirect_uri" value="http://localhost:8080/authorized">
+                    <label for="scope">Scope</label>
+                    <input type="text" id="scope" name="scope" value="openid profile email">
+                </div>
+            </div>
+
             <button type="submit" class="btn">로그인</button>
         </form>
+
+        <script>
+            document.getElementById('oauth2_login').addEventListener('change', function() {
+                document.getElementById('oauth2-settings').style.display = this.checked ? 'block' : 'none';
+            });
+        </script>
 
         <div class="register-link">
             계정이 없으신가요? <a th:href="@{/register}">회원가입</a>
