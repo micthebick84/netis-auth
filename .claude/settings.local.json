@@ -59,7 +59,10 @@
       "Bash(REFRESH_TOKEN=\"xNsH0EBRN_366_w9RFb4WgiAJdKVhyk2sXu-JRCAP-tzxQqsiLQe5_Emjy51WyG-BRc6R1fCWDoQW3cDqnX3twiWT_nIViQ3irfsCdnioMRsoDVV9k2ztYETOXz7NJjk\")",
       "Bash(AUTH_CODE=\"ART16YRJh6CfwgcSaOpshgyMhdHq6chaqKlAnBIdJbQQ-9pyyTd8XqImlIw5sGagW6En6cYVF-EnVbK5UGYlAkFUTTzItBGgbjP7InMx0z-CryYwlcORlvaSdMzSmJAF\")",
       "Bash(REFRESH_TOKEN=\"Jh8iM_7K3T6KPYLzYClY0G5HF5BtGZs9Qv9w9akZjATfqQR3g0kotJeuon_r9GSje6_7qub27kTuH6_KXK0XGEYqhR_cBGtPry2kQYleKDR6qjXVaxV00ZW_7Ke0Yrkd\")",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(gh repo create:*)",
+      "Bash(winget install:*)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" repo create netis-auth --private --source=. --push --description \"Spring Authorization Server with OAuth2 support\")"
     ]
   },
   "enableAllProjectMcpServers": true,

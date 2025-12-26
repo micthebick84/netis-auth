@@ -28,19 +28,6 @@ public class SchemaInitializer implements ApplicationRunner {
             log.info("OAuth2 테이블 스키마 재생성 완료");
         } else {
             log.info("OAuth2 테이블 스키마가 이미 올바른 형식입니다");
-            // 기존 authorization 데이터 삭제 (직렬화 호환성 이슈 방지)
-            clearAuthorizationData();
-        }
-    }
-
-    private void clearAuthorizationData() {
-        try {
-            int deleted = jdbcTemplate.update("DELETE FROM oauth2_authorization");
-            if (deleted > 0) {
-                log.info("기존 authorization 데이터 {}건 삭제됨 (직렬화 호환성)", deleted);
-            }
-        } catch (Exception e) {
-            log.debug("Authorization 데이터 삭제 실패: {}", e.getMessage());
         }
     }
 
