@@ -62,7 +62,18 @@
       "Bash(git add:*)",
       "Bash(gh repo create:*)",
       "Bash(winget install:*)",
-      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" repo create netis-auth --private --source=. --push --description \"Spring Authorization Server with OAuth2 support\")"
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" repo create netis-auth --private --source=. --push --description \"Spring Authorization Server with OAuth2 support\")",
+      "Bash(git push)",
+      "Bash(findstr:*)",
+      "Bash(taskkill //F //PID 28012)",
+      "mcp__chrome-devtools__list_network_requests",
+      "Bash(./gradlew clean build:*)",
+      "Bash(./gradlew bootRun)",
+      "Bash(./gradlew:*)",
+      "Bash(GRADLE_USER_HOME=./gradle_home ./gradlew clean build:*)",
+      "mcp__busan_oracle__execute_query",
+      "Bash(GRADLE_USER_HOME=./gradle_home ./gradlew bootRun:*)",
+      "Bash(taskkill:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

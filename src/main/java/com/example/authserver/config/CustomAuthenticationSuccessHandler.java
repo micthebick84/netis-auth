@@ -8,13 +8,14 @@ import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
+import org.springframework.security.web.savedrequest.RequestCache;
+import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 @Component
@@ -22,6 +23,7 @@ import java.util.UUID;
 public class CustomAuthenticationSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
 
     private final UserRepository userRepository;
+    private final RequestCache requestCache = new HttpSessionRequestCache();
 
     @Override
     @Transactional
@@ -36,7 +38,19 @@ public class CustomAuthenticationSuccessHandler extends SavedRequestAwareAuthent
             userRepository.save(user);
         });
 
-        // OAuth2 로그인 옵션 체크
+        // 1. 먼저 저장된 요청 확인 (OAuth2 authorization 요청 등)
+        SavedRequest savedRequest = requestCache.getRequest(request, response);
+        if (savedRequest != null) {
+            String targetUrl = savedRequest.getRedirectUrl();
+            // OAuth2 authorization 요청이면 저장된 요청으로 리다이렉트
+            if (targetUrl != null && targetUrl.contains("/oauth2/authorize")) {
+                logger.debug("Redirecting to saved OAuth2 authorization request: " + targetUrl);
+                super.onAuthenticationSuccess(request, response, authentication);
+                return;
+            }
+        }
+
+        // 2. 폼에서 OAuth2 로그인 옵션 체크
         HttpSession session = request.getSession(false);
         String oauth2Login = null;
         String clientId = null;
@@ -67,10 +81,12 @@ public class CustomAuthenticationSuccessHandler extends SavedRequestAwareAuthent
                     .build()
                     .toUriString();
 
+            logger.debug("Redirecting to OAuth2 authorization: " + authorizeUrl);
             response.sendRedirect(authorizeUrl);
             return;
         }
 
+        // 3. 저장된 요청이 있으면 그것으로 리다이렉트, 없으면 기본 URL로
         super.setDefaultTargetUrl("/");
         super.onAuthenticationSuccess(request, response, authentication);
     }

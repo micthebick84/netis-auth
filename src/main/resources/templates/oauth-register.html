@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원가입 - Auth Server</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .register-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 450px;
+        }
+        .register-container h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .client-info {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border-left: 4px solid #667eea;
+        }
+        .client-info .client-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+        .client-info .client-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        .client-info .client-desc {
+            font-size: 13px;
+            color: #666;
+            margin-top: 8px;
+        }
+        .scope-badges {
+            margin-top: 10px;
+        }
+        .scope-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-right: 5px;
+            margin-top: 5px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e1e1;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .form-group input.error {
+            border-color: #dc3545;
+        }
+        .error-message {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .alert {
+            padding: 12px 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+        .login-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e1e1e1;
+        }
+        .divider span {
+            padding: 0 15px;
+            color: #999;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <h1>회원가입</h1>
+
+        <!-- 클라이언트 정보 표시 -->
+        <div th:if="${clientName}" class="client-info">
+            <div class="client-label">연결 애플리케이션</div>
+            <div class="client-name" th:text="${clientName}">Application Name</div>
+            <div class="client-desc">
+                이 애플리케이션에서 회원가입을 요청했습니다.
+                가입 완료 후 자동으로 로그인됩니다.
+            </div>
+            <div class="scope-badges">
+                <span th:each="s : ${#strings.arraySplit(scope, ' ')}" class="scope-badge" th:text="${s}">scope</span>
+            </div>
+        </div>
+
+        <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+        <form th:action="@{/oauth/register}" th:object="${registerRequest}" method="post">
+            <!-- OAuth 파라미터 유지 -->
+            <input type="hidden" name="client_id" th:value="${clientId}">
+            <input type="hidden" name="redirect_uri" th:value="${redirectUri}">
+            <input type="hidden" name="scope" th:value="${scope}">
+            <input type="hidden" name="state" th:value="${state}">
+            <input type="hidden" name="response_type" th:value="${responseType}">
+
+            <div class="form-group">
+                <label for="username">사용자명</label>
+                <input type="text"
+                       id="username"
+                       th:field="*{username}"
+                       th:classappend="${#fields.hasErrors('username')} ? 'error' : ''"
+                       placeholder="4자 이상 입력하세요"
+                       autocomplete="username">
+                <div th:if="${#fields.hasErrors('username')}" class="error-message">
+                    <span th:errors="*{username}"></span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">이메일</label>
+                <input type="email"
+                       id="email"
+                       th:field="*{email}"
+                       th:classappend="${#fields.hasErrors('email')} ? 'error' : ''"
+                       placeholder="example@email.com"
+                       autocomplete="email">
+                <div th:if="${#fields.hasErrors('email')}" class="error-message">
+                    <span th:errors="*{email}"></span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">비밀번호</label>
+                <input type="password"
+                       id="password"
+                       th:field="*{password}"
+                       th:classappend="${#fields.hasErrors('password')} ? 'error' : ''"
+                       placeholder="8자 이상 입력하세요"
+                       autocomplete="new-password">
+                <div th:if="${#fields.hasErrors('password')}" class="error-message">
+                    <span th:errors="*{password}"></span>
+                </div>
+            </div>
+
+            <button type="submit" class="btn">가입하고 계속하기</button>
+        </form>
+
+        <div class="divider"><span>또는</span></div>
+
+        <div class="login-link">
+            이미 계정이 있으신가요?
+            <a th:href="@{/oauth2/authorize(response_type=${responseType}, client_id=${clientId}, redirect_uri=${redirectUri}, scope=${scope}, state=${state})}">로그인</a>
+        </div>
+    </div>
+</body>
+</html>

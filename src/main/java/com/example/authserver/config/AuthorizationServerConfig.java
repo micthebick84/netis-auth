@@ -18,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.OAuth2Token;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
@@ -29,11 +30,20 @@ import org.springframework.security.oauth2.server.authorization.token.*;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
+import org.springframework.security.oauth2.server.authorization.oidc.authentication.OidcLogoutAuthenticationToken;
+import org.springframework.web.cors.CorsConfigurationSource;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.time.Duration;
 import java.util.UUID;
 
@@ -43,13 +53,16 @@ public class AuthorizationServerConfig {
     private final OidcUserInfoMapper oidcUserInfoMapper;
     private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
+    private final CorsConfigurationSource corsConfigurationSource;
 
     public AuthorizationServerConfig(OidcUserInfoMapper oidcUserInfoMapper,
                                      UserDetailsService userDetailsService,
-                                     PasswordEncoder passwordEncoder) {
+                                     PasswordEncoder passwordEncoder,
+                                     CorsConfigurationSource corsConfigurationSource) {
         this.oidcUserInfoMapper = oidcUserInfoMapper;
         this.userDetailsService = userDetailsService;
         this.passwordEncoder = passwordEncoder;
+        this.corsConfigurationSource = corsConfigurationSource;
     }
 
     @Bean
@@ -57,7 +70,9 @@ public class AuthorizationServerConfig {
     public SecurityFilterChain authorizationServerSecurityFilterChain(
             HttpSecurity http,
             OAuth2AuthorizationService authorizationService,
-            OAuth2TokenGenerator<? extends OAuth2Token> tokenGenerator) throws Exception {
+            OAuth2TokenGenerator<? extends OAuth2Token> tokenGenerator,
+            RegisteredClientRepository registeredClientRepository,
+            JwtDecoder jwtDecoder) throws Exception {
 
         OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
 
@@ -76,9 +91,62 @@ public class AuthorizationServerConfig {
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userInfoMapper(oidcUserInfoMapper)
                         )
+                        // OIDC RP-Initiated Logout 활성화
+                        // CustomOidcLogoutAuthenticationProvider를 사용하여 sid 검증을 건너뜀
+                        .logoutEndpoint(logout -> logout
+                                .authenticationProvider(new CustomOidcLogoutAuthenticationProvider(
+                                        authorizationService,
+                                        registeredClientRepository,
+                                        jwtDecoder
+                                ))
+                                .logoutResponseHandler((request, response, authentication) -> {
+                                    // 세션 무효화
+                                    var session = request.getSession(false);
+                                    if (session != null) {
+                                        session.invalidate();
+                                    }
+                                    // SecurityContext 클리어
+                                    org.springframework.security.core.context.SecurityContextHolder.clearContext();
+
+                                    String redirectUri = null;
+                                    String state = null;
+
+                                    // 1. OidcLogoutAuthenticationToken에서 추출 시도
+                                    if (authentication instanceof OidcLogoutAuthenticationToken logoutToken) {
+                                        redirectUri = logoutToken.getPostLogoutRedirectUri();
+                                        state = logoutToken.getState();
+                                        System.out.println("[OIDC Logout] Token postLogoutRedirectUri: " + redirectUri);
+                                    }
+
+                                    // 2. 요청 파라미터에서 직접 추출 (fallback)
+                                    if (redirectUri == null || redirectUri.isBlank()) {
+                                        redirectUri = request.getParameter("post_logout_redirect_uri");
+                                        System.out.println("[OIDC Logout] Request param postLogoutRedirectUri: " + redirectUri);
+                                    }
+                                    if (state == null || state.isBlank()) {
+                                        state = request.getParameter("state");
+                                    }
+
+                                    // 리다이렉트 URI가 있으면 해당 URI로 리다이렉트
+                                    if (redirectUri != null && !redirectUri.isBlank()) {
+                                        if (state != null && !state.isBlank()) {
+                                            redirectUri += (redirectUri.contains("?") ? "&" : "?") + "state=" + state;
+                                        }
+                                        System.out.println("[OIDC Logout] Redirecting to: " + redirectUri);
+                                        response.sendRedirect(redirectUri);
+                                        return;
+                                    }
+
+                                    // 기본 리다이렉트
+                                    System.out.println("[OIDC Logout] No redirect URI, going to /login?logout");
+                                    response.sendRedirect("/login?logout");
+                                })
+                        )
                 );
 
         http
+                // OAuth2 엔드포인트에 CORS 적용
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .exceptionHandling(exceptions -> exceptions
                         .defaultAuthenticationEntryPointFor(
                                 new LoginUrlAuthenticationEntryPoint("/login"),
@@ -101,6 +169,7 @@ public class AuthorizationServerConfig {
                 .jwkSetEndpoint("/oauth2/jwks")
                 .oidcUserInfoEndpoint("/userinfo")
                 .oidcClientRegistrationEndpoint("/connect/register")
+                .oidcLogoutEndpoint("/connect/logout")
                 .build();
     }
 
@@ -114,31 +183,108 @@ public class AuthorizationServerConfig {
                 .build();
     }
 
+    private static final String KEY_DIRECTORY = ".keys";
+    private static final String PUBLIC_KEY_FILE = KEY_DIRECTORY + "/public.key";
+    private static final String PRIVATE_KEY_FILE = KEY_DIRECTORY + "/private.key";
+    private static final String KEY_ID_FILE = KEY_DIRECTORY + "/key.id";
+
     @Bean
     public JWKSource<SecurityContext> jwkSource() {
-        KeyPair keyPair = generateRsaKey();
+        KeyPair keyPair = loadOrGenerateRsaKey();
         RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
         RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
 
+        String keyId = loadOrGenerateKeyId();
+
         RSAKey rsaKey = new RSAKey.Builder(publicKey)
                 .privateKey(privateKey)
-                .keyID(UUID.randomUUID().toString())
+                .keyID(keyId)
                 .build();
 
         JWKSet jwkSet = new JWKSet(rsaKey);
         return new ImmutableJWKSet<>(jwkSet);
     }
 
-    private static KeyPair generateRsaKey() {
-        KeyPair keyPair;
+    private KeyPair loadOrGenerateRsaKey() {
+        File publicKeyFile = new File(PUBLIC_KEY_FILE);
+        File privateKeyFile = new File(PRIVATE_KEY_FILE);
+
+        if (publicKeyFile.exists() && privateKeyFile.exists()) {
+            try {
+                return loadKeyPair(publicKeyFile, privateKeyFile);
+            } catch (Exception e) {
+                System.out.println("기존 키 로드 실패, 새 키 생성: " + e.getMessage());
+            }
+        }
+
+        return generateAndSaveRsaKey();
+    }
+
+    private KeyPair loadKeyPair(File publicKeyFile, File privateKeyFile) throws Exception {
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+
+        byte[] publicKeyBytes = readFile(publicKeyFile);
+        X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
+        RSAPublicKey publicKey = (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
+
+        byte[] privateKeyBytes = readFile(privateKeyFile);
+        PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
+        RSAPrivateKey privateKey = (RSAPrivateKey) keyFactory.generatePrivate(privateKeySpec);
+
+        System.out.println("RSA 키를 파일에서 로드했습니다.");
+        return new KeyPair(publicKey, privateKey);
+    }
+
+    private KeyPair generateAndSaveRsaKey() {
         try {
             KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
             keyPairGenerator.initialize(2048);
-            keyPair = keyPairGenerator.generateKeyPair();
+            KeyPair keyPair = keyPairGenerator.generateKeyPair();
+
+            // 키 디렉토리 생성
+            new File(KEY_DIRECTORY).mkdirs();
+
+            // 키 파일 저장
+            writeFile(new File(PUBLIC_KEY_FILE), keyPair.getPublic().getEncoded());
+            writeFile(new File(PRIVATE_KEY_FILE), keyPair.getPrivate().getEncoded());
+
+            System.out.println("새 RSA 키를 생성하고 파일에 저장했습니다.");
+            return keyPair;
         } catch (Exception ex) {
-            throw new IllegalStateException(ex);
+            throw new IllegalStateException("RSA 키 생성 실패", ex);
         }
-        return keyPair;
+    }
+
+    private String loadOrGenerateKeyId() {
+        File keyIdFile = new File(KEY_ID_FILE);
+        if (keyIdFile.exists()) {
+            try {
+                return new String(readFile(keyIdFile)).trim();
+            } catch (Exception e) {
+                // 무시하고 새로 생성
+            }
+        }
+
+        String keyId = UUID.randomUUID().toString();
+        try {
+            new File(KEY_DIRECTORY).mkdirs();
+            writeFile(keyIdFile, keyId.getBytes());
+        } catch (Exception e) {
+            // 저장 실패해도 계속 진행
+        }
+        return keyId;
+    }
+
+    private byte[] readFile(File file) throws IOException {
+        try (FileInputStream fis = new FileInputStream(file)) {
+            return fis.readAllBytes();
+        }
+    }
+
+    private void writeFile(File file, byte[] data) throws IOException {
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write(data);
+        }
     }
 
     @Bean

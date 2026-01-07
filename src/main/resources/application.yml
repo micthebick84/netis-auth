@@ -5,9 +5,9 @@ spring:
   application:
     name: auth-server
   datasource:
-    url: jdbc:oracle:thin:@localhost:8521/FREE
-    username: netis
-    password: ntflow
+    url: jdbc:oracle:thin:@10.1.0.103:1521/FREE
+    username: hm_busan
+    password: hm_soft
     driver-class-name: oracle.jdbc.OracleDriver
     hikari:
       maximum-pool-size: 10
@@ -27,7 +27,8 @@ logging:
   level:
     org.springframework.security: DEBUG
     org.springframework.security.oauth2: DEBUG
-    org.springframework.security.oauth2.server.authorization: DEBUG
+    org.springframework.security.oauth2.server.authorization: TRACE
+    org.springframework.security.oauth2.server.authorization.oidc: TRACE
 
 # Authorization Server issuer
 authorization-server:

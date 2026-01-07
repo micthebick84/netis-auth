@@ -10,6 +10,8 @@ import org.springframework.security.oauth2.server.authorization.token.JwtEncodin
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
 import org.springframework.stereotype.Component;
 
+import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
+
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -60,6 +62,10 @@ public class JwtTokenCustomizer implements OAuth2TokenCustomizer<JwtEncodingCont
                         claims.put("preferred_username", userDetails.getUsername());
                         claims.put("email_verified", true);
                     }
+
+                    // sid (Session ID) 클레임은 의도적으로 제외
+                    // Spring Security의 Session Fixation 보호로 인해 세션 ID 불일치 문제가 발생하므로
+                    // sid 클레임을 제외하여 OIDC RP-Initiated Logout 시 검증을 건너뛰게 함
                 }
             });
         }

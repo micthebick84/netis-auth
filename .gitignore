@@ -42,3 +42,5 @@ build/
 
 # MCP config (contains API keys)
 .mcp.json
+.keys/
+gradle_home/

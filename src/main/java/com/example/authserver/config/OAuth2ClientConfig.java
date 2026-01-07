@@ -62,7 +62,8 @@ public class OAuth2ClientConfig {
         rowMapper.setObjectMapper(objectMapper);
         authorizationService.setAuthorizationRowMapper(rowMapper);
 
-        return authorizationService;
+        // 세션 ID를 추적하는 래퍼로 감싸서 반환
+        return new SessionTrackingAuthorizationService(authorizationService);
     }
 
     @Bean
@@ -72,8 +73,11 @@ public class OAuth2ClientConfig {
     }
 
     @Bean
-    public ApplicationRunner initializeClients(RegisteredClientRepository repository) {
+    public ApplicationRunner initializeClients(RegisteredClientRepository repository, JdbcTemplate jdbcTemplate) {
         return args -> {
+            // nuxt-app 클라이언트의 post_logout_redirect_uris 업데이트 (NULL인 경우)
+            updateNuxtAppPostLogoutRedirectUris(jdbcTemplate);
+
             // 테스트 클라이언트 등록
             if (repository.findByClientId("test-client") == null) {
                 RegisteredClient testClient = RegisteredClient.withId(UUID.randomUUID().toString())
@@ -134,5 +138,25 @@ public class OAuth2ClientConfig {
                 repository.save(spaClient);
             }
         };
+    }
+
+    private void updateNuxtAppPostLogoutRedirectUris(JdbcTemplate jdbcTemplate) {
+        String checkSql = "SELECT post_logout_redirect_uris FROM oauth2_registered_client WHERE client_id = ?";
+        String updateSql = "UPDATE oauth2_registered_client SET post_logout_redirect_uris = ? WHERE client_id = ?";
+
+        try {
+            String currentValue = jdbcTemplate.queryForObject(checkSql, String.class, "nuxt-app");
+            // 슬래시 있는 버전과 없는 버전 모두 포함
+            String postLogoutUris = "http://localhost:3000,http://localhost:3000/,http://localhost:3000/login?logout=true,http://localhost:3000/login";
+            // 값이 없거나 http://localhost:3000 (슬래시 없는) 포함되지 않은 경우 업데이트
+            if (currentValue == null || currentValue.isBlank() || !currentValue.startsWith("http://localhost:3000,")) {
+                int updated = jdbcTemplate.update(updateSql, postLogoutUris, "nuxt-app");
+                if (updated > 0) {
+                    System.out.println("nuxt-app 클라이언트의 post_logout_redirect_uris가 업데이트되었습니다: " + postLogoutUris);
+                }
+            }
+        } catch (Exception e) {
+            // nuxt-app 클라이언트가 없는 경우 무시
+        }
     }
 }

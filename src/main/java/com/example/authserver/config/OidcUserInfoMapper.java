@@ -26,6 +26,12 @@ public class OidcUserInfoMapper implements Function<OidcUserInfoAuthenticationCo
         if (principal != null && principal.getPrincipal() instanceof CustomUserDetails userDetails) {
             User user = userDetails.getUser();
 
+            if (user == null) {
+                // user가 null인 경우 username을 subject로 사용
+                userInfoBuilder.subject(userDetails.getUsername());
+                return userInfoBuilder.build();
+            }
+
             // Subject는 항상 포함
             userInfoBuilder.subject(user.getUsername());
 
