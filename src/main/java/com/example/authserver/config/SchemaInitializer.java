@@ -8,9 +8,14 @@ import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+
 /**
  * OAuth2 Authorization 테이블 스키마 초기화
  * Oracle에서 CLOB 타입은 WHERE 절에서 비교할 수 없으므로 VARCHAR2로 재생성
+ * PostgreSQL에서는 이 작업이 필요 없으므로 건너뜀
  */
 @Component
 @Order(1)  // 가장 먼저 실행
@@ -19,15 +24,43 @@ import org.springframework.stereotype.Component;
 public class SchemaInitializer implements ApplicationRunner {
 
     private final JdbcTemplate jdbcTemplate;
+    private final DataSource dataSource;
 
     @Override
     public void run(ApplicationArguments args) {
+        String dbType = detectDatabaseType();
+        log.info("감지된 데이터베이스 타입: {}", dbType);
+
+        if (!"oracle".equalsIgnoreCase(dbType)) {
+            log.info("Oracle이 아닌 데이터베이스입니다. 스키마 재생성을 건너뜁니다.");
+            return;
+        }
+
         if (needsRecreation()) {
             log.info("OAuth2 테이블 스키마 재생성 시작...");
             recreateTables();
             log.info("OAuth2 테이블 스키마 재생성 완료");
         } else {
             log.info("OAuth2 테이블 스키마가 이미 올바른 형식입니다");
+        }
+    }
+
+    private String detectDatabaseType() {
+        try (Connection connection = dataSource.getConnection()) {
+            DatabaseMetaData metaData = connection.getMetaData();
+            String productName = metaData.getDatabaseProductName();
+            log.debug("데이터베이스 제품명: {}", productName);
+            if (productName.toLowerCase().contains("oracle")) {
+                return "oracle";
+            } else if (productName.toLowerCase().contains("postgresql")) {
+                return "postgresql";
+            } else if (productName.toLowerCase().contains("h2")) {
+                return "h2";
+            }
+            return productName;
+        } catch (Exception e) {
+            log.warn("데이터베이스 타입 감지 실패: {}", e.getMessage());
+            return "unknown";
         }
     }
 
