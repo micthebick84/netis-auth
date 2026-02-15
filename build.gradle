@@ -14,8 +14,7 @@ java {
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
-    options.fork = true
-    options.forkOptions.jvmArgs = ['-Duser.country=KR', '-Duser.language=ko', '-Dfile.encoding=UTF-8']
+    options.fork = false
 }
 
 configurations {
@@ -42,6 +41,9 @@ dependencies {
 
     // Oracle JDBC
     implementation 'com.oracle.database.jdbc:ojdbc11:23.3.0.23.09'
+
+    // PostgreSQL JDBC
+    runtimeOnly 'org.postgresql:postgresql'
 
     // JWT
     implementation 'io.jsonwebtoken:jjwt-api:0.12.5'

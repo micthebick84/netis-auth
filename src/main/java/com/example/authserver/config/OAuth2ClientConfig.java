@@ -111,6 +111,38 @@ public class OAuth2ClientConfig {
                 repository.save(testClient);
             }
 
+            // Nuxt Application 클라이언트
+            if (repository.findByClientId("nuxt-app") == null) {
+                RegisteredClient nuxtClient = RegisteredClient.withId(UUID.randomUUID().toString())
+                        .clientId("nuxt-app")
+                        .clientSecret(passwordEncoder.encode("secret123"))
+                        .clientName("Nuxt Application")
+                        .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                        .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
+                        .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                        .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+                        .redirectUri("http://localhost:3000/auth/callback")
+                        .postLogoutRedirectUri("http://localhost:3000/login?logout=true")
+                        .postLogoutRedirectUri("http://localhost:3000")
+                        .postLogoutRedirectUri("http://localhost:3000/")
+                        .postLogoutRedirectUri("http://localhost:3000/login")
+                        .scope(OidcScopes.OPENID)
+                        .scope(OidcScopes.PROFILE)
+                        .scope(OidcScopes.EMAIL)
+                        .clientSettings(ClientSettings.builder()
+                                .requireAuthorizationConsent(true)
+                                .requireProofKey(false)
+                                .build())
+                        .tokenSettings(TokenSettings.builder()
+                                .accessTokenTimeToLive(Duration.ofHours(1))
+                                .refreshTokenTimeToLive(Duration.ofDays(7))
+                                .reuseRefreshTokens(false)
+                                .idTokenSignatureAlgorithm(SignatureAlgorithm.RS256)
+                                .build())
+                        .build();
+                repository.save(nuxtClient);
+            }
+
             // PKCE 지원 SPA 클라이언트
             if (repository.findByClientId("spa-client") == null) {
                 RegisteredClient spaClient = RegisteredClient.withId(UUID.randomUUID().toString())
