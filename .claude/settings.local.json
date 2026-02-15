@@ -73,7 +73,9 @@
       "Bash(GRADLE_USER_HOME=./gradle_home ./gradlew clean build:*)",
       "mcp__busan_oracle__execute_query",
       "Bash(GRADLE_USER_HOME=./gradle_home ./gradlew bootRun:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: Implement OIDC RP-Initiated Logout with custom session handling\n\n- Add CustomOidcLogoutAuthenticationProvider to skip sid claim validation\n  \\(fixes Session Fixation protection causing session ID mismatch\\)\n- Add SessionTrackingAuthorizationService to track session IDs\n- Add custom logoutResponseHandler for proper post_logout_redirect_uri redirect\n- Update JwtTokenCustomizer to exclude sid claim from ID tokens\n- Add bearer token logout endpoint \\(/api/auth/logout/bearer\\)\n- Update OAuth2ClientConfig with multiple post_logout_redirect_uris\n- Add OAuth client registration page and controller\n- Update CustomAuthenticationSuccessHandler to check saved OAuth2 requests\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(D:HamonWebProjectnetis_authgradlew.bat bootRun)"
     ]
   },
   "enableAllProjectMcpServers": true,
