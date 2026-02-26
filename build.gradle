@@ -16,6 +16,7 @@ java {
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
     options.fork = false
+    options.release = 21
 }
 
 configurations {
@@ -26,7 +27,6 @@ configurations {
 
 repositories {
     mavenCentral()
-    maven { url 'https://projectlombok.org/edge-releases' }
 }
 
 dependencies {
@@ -51,9 +51,9 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
 
-    // Lombok (edge version for Java 24)
-    compileOnly 'org.projectlombok:lombok:edge-SNAPSHOT'
-    annotationProcessor 'org.projectlombok:lombok:edge-SNAPSHOT'
+    // Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.36'
+    annotationProcessor 'org.projectlombok:lombok:1.18.36'
 
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
