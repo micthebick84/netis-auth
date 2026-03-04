@@ -35,6 +35,12 @@ public class OAuth2ClientConfig {
 
     private final PasswordEncoder passwordEncoder;
 
+    @org.springframework.beans.factory.annotation.Value("${app.frontend-url:http://localhost:3000}")
+    private String frontendUrl;
+
+    @org.springframework.beans.factory.annotation.Value("${app.backend-url:http://localhost:8080}")
+    private String backendUrl;
+
     @Bean
     public RegisteredClientRepository registeredClientRepository(JdbcTemplate jdbcTemplate) {
         return new JdbcRegisteredClientRepository(jdbcTemplate);
@@ -89,9 +95,9 @@ public class OAuth2ClientConfig {
                         .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                         .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                         .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-                        .redirectUri("http://localhost:8080/login/oauth2/code/auth-server")
-                        .redirectUri("http://localhost:8080/authorized")
-                        .postLogoutRedirectUri("http://localhost:8080/")
+                        .redirectUri(backendUrl + "/login/oauth2/code/auth-server")
+                        .redirectUri(backendUrl + "/authorized")
+                        .postLogoutRedirectUri(backendUrl + "/")
                         .scope(OidcScopes.OPENID)
                         .scope(OidcScopes.PROFILE)
                         .scope(OidcScopes.EMAIL)
@@ -121,11 +127,11 @@ public class OAuth2ClientConfig {
                         .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
                         .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                         .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-                        .redirectUri("http://localhost:3000/auth/callback")
-                        .postLogoutRedirectUri("http://localhost:3000/login?logout=true")
-                        .postLogoutRedirectUri("http://localhost:3000")
-                        .postLogoutRedirectUri("http://localhost:3000/")
-                        .postLogoutRedirectUri("http://localhost:3000/login")
+                        .redirectUri(frontendUrl + "/auth/callback")
+                        .postLogoutRedirectUri(frontendUrl + "/login?logout=true")
+                        .postLogoutRedirectUri(frontendUrl)
+                        .postLogoutRedirectUri(frontendUrl + "/")
+                        .postLogoutRedirectUri(frontendUrl + "/login")
                         .scope(OidcScopes.OPENID)
                         .scope(OidcScopes.PROFILE)
                         .scope(OidcScopes.EMAIL)
@@ -151,8 +157,8 @@ public class OAuth2ClientConfig {
                         .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
                         .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                         .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-                        .redirectUri("http://localhost:3000/callback")
-                        .postLogoutRedirectUri("http://localhost:3000/")
+                        .redirectUri(frontendUrl + "/callback")
+                        .postLogoutRedirectUri(frontendUrl + "/")
                         .scope(OidcScopes.OPENID)
                         .scope(OidcScopes.PROFILE)
                         .scope(OidcScopes.EMAIL)
@@ -179,13 +185,19 @@ public class OAuth2ClientConfig {
         try {
             String currentValue = jdbcTemplate.queryForObject(checkSql, String.class, "nuxt-app");
             // 슬래시 있는 버전과 없는 버전 모두 포함
-            String postLogoutUris = "http://localhost:3000,http://localhost:3000/,http://localhost:3000/login?logout=true,http://localhost:3000/login";
-            // 값이 없거나 http://localhost:3000 (슬래시 없는) 포함되지 않은 경우 업데이트
-            if (currentValue == null || currentValue.isBlank() || !currentValue.startsWith("http://localhost:3000,")) {
+            String postLogoutUris = frontendUrl + "," + frontendUrl + "/," + frontendUrl + "/login?logout=true," + frontendUrl + "/login";
+            // 값이 없거나 현재 프론트엔드 URL이 포함되지 않은 경우 업데이트
+            // IP 기반 URI가 이미 추가된 경우 덮어쓰지 않도록 체크
+            if (currentValue == null || currentValue.isBlank()) {
                 int updated = jdbcTemplate.update(updateSql, postLogoutUris, "nuxt-app");
                 if (updated > 0) {
                     System.out.println("nuxt-app 클라이언트의 post_logout_redirect_uris가 업데이트되었습니다: " + postLogoutUris);
                 }
+            } else if (!currentValue.contains(frontendUrl)) {
+                // 기존 URI에 추가 (기존 IP redirect URI 보존)
+                String merged = currentValue + "," + postLogoutUris;
+                jdbcTemplate.update(updateSql, merged, "nuxt-app");
+                System.out.println("nuxt-app 클라이언트의 post_logout_redirect_uris에 추가되었습니다: " + postLogoutUris);
             }
         } catch (Exception e) {
             // nuxt-app 클라이언트가 없는 경우 무시

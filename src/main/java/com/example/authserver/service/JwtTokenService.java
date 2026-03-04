@@ -24,11 +24,17 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class JwtTokenService {
 
     private final JWKSource<SecurityContext> jwkSource;
+    private final String issuerUri;
+
+    public JwtTokenService(JWKSource<SecurityContext> jwkSource,
+                           @org.springframework.beans.factory.annotation.Value("${authorization-server.issuer:http://localhost:9000}") String issuerUri) {
+        this.jwkSource = jwkSource;
+        this.issuerUri = issuerUri;
+    }
 
     private static final long ACCESS_TOKEN_VALIDITY_SECONDS = 3600; // 1시간
     private static final long REFRESH_TOKEN_VALIDITY_SECONDS = 604800; // 7일
@@ -63,7 +69,7 @@ public class JwtTokenService {
 
             JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
                     .subject(user.getUsername())
-                    .issuer("http://localhost:9000")
+                    .issuer(issuerUri)
                     .issueTime(Date.from(now))
                     .expirationTime(Date.from(expiry))
                     .jwtID(UUID.randomUUID().toString())

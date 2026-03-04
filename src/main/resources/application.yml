@@ -5,10 +5,10 @@ spring:
   application:
     name: auth-server
   datasource:
-    url: jdbc:oracle:thin:@10.1.0.103:1521/FREE
-    username: hm_busan
-    password: hm_soft
-    driver-class-name: oracle.jdbc.OracleDriver
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: ntflow
+    driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5
@@ -20,8 +20,14 @@ spring:
     show-sql: true
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.OracleDialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/postgres/schema.sql
+      data-locations: classpath:db/postgres/data.sql
+      continue-on-error: true
 
 logging:
   level:
@@ -32,4 +38,11 @@ logging:
 
 # Authorization Server issuer
 authorization-server:
-  issuer: http://localhost:9000
+  issuer: ${AUTH_ISSUER_URI:http://localhost:9000}
+
+# Application URLs (for OAuth2 client redirect URIs)
+app:
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+  backend-url: ${BACKEND_URL:http://localhost:8080}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080,http://10.1.1.75:3000,http://10.1.1.75:8080}
