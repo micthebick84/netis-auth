@@ -5,6 +5,7 @@ import com.example.authserver.service.OAuth2ClientService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -58,6 +59,30 @@ public class ClientController {
         try {
             clientService.deleteClient(clientId);
             redirectAttributes.addFlashAttribute("successMessage", "클라이언트가 삭제되었습니다: " + clientId);
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/clients";
+    }
+
+    @GetMapping("/edit/{clientId}")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getClientForEdit(@PathVariable String clientId) {
+        Map<String, Object> details = clientService.getClientDetails(clientId);
+        if (details == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(details);
+    }
+
+    @PostMapping("/update/{clientId}")
+    public String updateClient(@PathVariable String clientId,
+                               @ModelAttribute("clientRequest") ClientRegistrationRequest request,
+                               RedirectAttributes redirectAttributes) {
+        try {
+            clientService.updateClient(clientId, request);
+            redirectAttributes.addFlashAttribute("successMessage",
+                "클라이언트가 수정되었습니다: " + clientId);
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
