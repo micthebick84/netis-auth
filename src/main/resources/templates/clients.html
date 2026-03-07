@@ -182,6 +182,40 @@
             font-size: 12px;
             margin-top: 5px;
         }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 30px;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+        }
+        .modal h2 {
+            margin-bottom: 20px;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -296,6 +330,8 @@
                         </td>
                         <td th:text="${#temporals.format(client.CLIENT_ID_ISSUED_AT, 'yyyy-MM-dd HH:mm')}">2024-01-01</td>
                         <td class="actions">
+                            <button type="button" class="btn btn-secondary"
+                                    th:onclick="'openEditModal(\'' + ${client.CLIENT_ID} + '\')'">수정</button>
                             <a th:href="@{/clients/test/{clientId}(clientId=${client.CLIENT_ID})}" class="btn btn-info">테스트</a>
                             <form th:action="@{/clients/delete/{clientId}(clientId=${client.CLIENT_ID})}" method="post" style="display:inline"
                                   onsubmit="return confirm('정말 삭제하시겠습니까?');">
@@ -309,6 +345,139 @@
                 등록된 클라이언트가 없습니다.
             </p>
         </div>
+
+        <!-- 수정 모달 -->
+        <div id="editModal" class="modal-overlay" onclick="if(event.target===this)closeEditModal()">
+            <div class="modal">
+                <h2>클라이언트 수정</h2>
+                <form id="editForm" method="post">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>클라이언트 ID</label>
+                            <input type="text" id="editClientId" readonly style="background:#e9ecef">
+                        </div>
+                        <div class="form-group">
+                            <label>클라이언트 시크릿 (비워두면 기존 유지)</label>
+                            <input type="password" name="clientSecret" id="editClientSecret" placeholder="변경 시 입력">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>클라이언트 이름 *</label>
+                        <input type="text" name="clientName" id="editClientName" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>리다이렉트 URI *</label>
+                            <input type="text" name="redirectUri" id="editRedirectUri" required>
+                        </div>
+                        <div class="form-group">
+                            <label>로그아웃 후 리다이렉트 URI</label>
+                            <input type="text" name="postLogoutRedirectUri" id="editPostLogoutRedirectUri">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Scopes</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" name="scopes" value="openid" id="editScopeOpenid"> openid</label>
+                            <label><input type="checkbox" name="scopes" value="profile" id="editScopeProfile"> profile</label>
+                            <label><input type="checkbox" name="scopes" value="email" id="editScopeEmail"> email</label>
+                            <label><input type="checkbox" name="scopes" value="read" id="editScopeRead"> read</label>
+                            <label><input type="checkbox" name="scopes" value="write" id="editScopeWrite"> write</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Grant Types</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" name="grantTypes" value="authorization_code" id="editGrantAuthCode"> Authorization Code</label>
+                            <label><input type="checkbox" name="grantTypes" value="refresh_token" id="editGrantRefresh"> Refresh Token</label>
+                            <label><input type="checkbox" name="grantTypes" value="client_credentials" id="editGrantClientCred"> Client Credentials</label>
+                            <label><input type="checkbox" name="grantTypes" value="password" id="editGrantPassword"> Password</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>설정</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" name="requireConsent" id="editRequireConsent" value="true"> 동의 화면 필수</label>
+                            <label><input type="checkbox" name="requireProofKey" id="editRequireProofKey" value="true"> PKCE 필수</label>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Access Token 유효 시간 (초)</label>
+                            <input type="number" name="accessTokenValiditySeconds" id="editAccessTokenTTL" value="3600">
+                        </div>
+                        <div class="form-group">
+                            <label>Refresh Token 유효 시간 (초)</label>
+                            <input type="number" name="refreshTokenValiditySeconds" id="editRefreshTokenTTL" value="604800">
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeEditModal()">취소</button>
+                        <button type="submit" class="btn btn-primary">저장</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
+
+    <script>
+    function openEditModal(clientId) {
+        fetch('/clients/edit/' + clientId)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                document.getElementById('editClientId').value = data.client_id || data.CLIENT_ID;
+                document.getElementById('editClientName').value = data.client_name || data.CLIENT_NAME || '';
+                document.getElementById('editClientSecret').value = '';
+
+                var redirectUris = (data.redirect_uris || data.REDIRECT_URIS || '').split(',');
+                document.getElementById('editRedirectUri').value = redirectUris[0] || '';
+
+                var postLogoutUris = (data.post_logout_redirect_uris || data.POST_LOGOUT_REDIRECT_URIS || '').split(',');
+                document.getElementById('editPostLogoutRedirectUri').value = postLogoutUris[0] || '';
+
+                var scopes = (data.scopes || data.SCOPES || '').split(',');
+                document.getElementById('editScopeOpenid').checked = scopes.indexOf('openid') >= 0;
+                document.getElementById('editScopeProfile').checked = scopes.indexOf('profile') >= 0;
+                document.getElementById('editScopeEmail').checked = scopes.indexOf('email') >= 0;
+                document.getElementById('editScopeRead').checked = scopes.indexOf('read') >= 0;
+                document.getElementById('editScopeWrite').checked = scopes.indexOf('write') >= 0;
+
+                var grants = (data.authorization_grant_types || data.AUTHORIZATION_GRANT_TYPES || '').split(',');
+                document.getElementById('editGrantAuthCode').checked = grants.indexOf('authorization_code') >= 0;
+                document.getElementById('editGrantRefresh').checked = grants.indexOf('refresh_token') >= 0;
+                document.getElementById('editGrantClientCred').checked = grants.indexOf('client_credentials') >= 0;
+                document.getElementById('editGrantPassword').checked = grants.indexOf('password') >= 0;
+
+                var settings = {};
+                try { settings = JSON.parse(data.client_settings || data.CLIENT_SETTINGS || '{}'); } catch(e) {}
+                var tokenSettings = {};
+                try { tokenSettings = JSON.parse(data.token_settings || data.TOKEN_SETTINGS || '{}'); } catch(e) {}
+
+                document.getElementById('editRequireConsent').checked =
+                    settings['settings.client.require-authorization-consent'] === true;
+                document.getElementById('editRequireProofKey').checked =
+                    settings['settings.client.require-proof-key'] === true;
+
+                var accessTTL = tokenSettings['settings.token.access-token-time-to-live'];
+                if (accessTTL) {
+                    var match = accessTTL.match(/PT(\d+(\.\d+)?)S/);
+                    if (match) document.getElementById('editAccessTokenTTL').value = parseInt(match[1]);
+                }
+                var refreshTTL = tokenSettings['settings.token.refresh-token-time-to-live'];
+                if (refreshTTL) {
+                    var match2 = refreshTTL.match(/PT(\d+(\.\d+)?)S/);
+                    if (match2) document.getElementById('editRefreshTokenTTL').value = parseInt(match2[1]);
+                }
+
+                document.getElementById('editForm').action = '/clients/update/' + (data.client_id || data.CLIENT_ID);
+                document.getElementById('editModal').classList.add('active');
+            })
+            .catch(function(err) { alert('클라이언트 정보를 불러올 수 없습니다: ' + err); });
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.remove('active');
+    }
+    </script>
 </body>
 </html>
