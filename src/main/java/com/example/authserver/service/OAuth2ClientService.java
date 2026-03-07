@@ -109,6 +109,20 @@ public class OAuth2ClientService {
         return jdbcTemplate.queryForList(sql);
     }
 
+    @Transactional(readOnly = true)
+    public Map<String, Object> getClientDetails(String clientId) {
+        String sql = "SELECT id, client_id, client_name, client_secret, " +
+                     "client_authentication_methods, authorization_grant_types, " +
+                     "redirect_uris, post_logout_redirect_uris, scopes, " +
+                     "client_settings, token_settings " +
+                     "FROM oauth2_registered_client WHERE client_id = ?";
+        List<Map<String, Object>> results = jdbcTemplate.queryForList(sql, clientId);
+        if (results.isEmpty()) {
+            return null;
+        }
+        return results.get(0);
+    }
+
     public void deleteClient(String clientId) {
         RegisteredClient client = registeredClientRepository.findByClientId(clientId);
         if (client == null) {
@@ -119,6 +133,81 @@ public class OAuth2ClientService {
         jdbcTemplate.update("DELETE FROM oauth2_authorization WHERE registered_client_id = ?", client.getId());
         jdbcTemplate.update("DELETE FROM oauth2_authorization_consent WHERE registered_client_id = ?", client.getId());
         jdbcTemplate.update("DELETE FROM oauth2_registered_client WHERE id = ?", client.getId());
+    }
+
+    public RegisteredClient updateClient(String clientId, ClientRegistrationRequest request) {
+        RegisteredClient existing = registeredClientRepository.findByClientId(clientId);
+        if (existing == null) {
+            throw new IllegalArgumentException("클라이언트를 찾을 수 없습니다: " + clientId);
+        }
+
+        String existingId = existing.getId();
+
+        // clientSecret: blank means keep existing, otherwise encode new
+        String encodedSecret;
+        if (request.getClientSecret() == null || request.getClientSecret().isBlank()) {
+            encodedSecret = existing.getClientSecret();
+        } else {
+            encodedSecret = passwordEncoder.encode(request.getClientSecret());
+        }
+
+        // Delete related data then the client itself
+        jdbcTemplate.update("DELETE FROM oauth2_authorization WHERE registered_client_id = ?", existingId);
+        jdbcTemplate.update("DELETE FROM oauth2_authorization_consent WHERE registered_client_id = ?", existingId);
+        jdbcTemplate.update("DELETE FROM oauth2_registered_client WHERE id = ?", existingId);
+
+        // Rebuild with same ID
+        RegisteredClient.Builder builder = RegisteredClient.withId(existingId)
+                .clientId(clientId)
+                .clientSecret(encodedSecret)
+                .clientName(request.getClientName())
+                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST);
+
+        Set<String> grantTypes = request.getGrantTypes();
+        if (grantTypes == null || grantTypes.isEmpty()) {
+            builder.authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                   .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN);
+        } else {
+            for (String grantType : grantTypes) {
+                switch (grantType.toLowerCase()) {
+                    case "authorization_code" -> builder.authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE);
+                    case "refresh_token" -> builder.authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN);
+                    case "client_credentials" -> builder.authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS);
+                    case "password" -> builder.authorizationGrantType(new AuthorizationGrantType("password"));
+                }
+            }
+        }
+
+        builder.redirectUri(request.getRedirectUri());
+        if (request.getPostLogoutRedirectUri() != null && !request.getPostLogoutRedirectUri().isBlank()) {
+            builder.postLogoutRedirectUri(request.getPostLogoutRedirectUri());
+        }
+
+        Set<String> scopes = request.getScopes();
+        if (scopes == null || scopes.isEmpty()) {
+            builder.scope(OidcScopes.OPENID).scope(OidcScopes.PROFILE).scope(OidcScopes.EMAIL);
+        } else {
+            for (String scope : scopes) {
+                builder.scope(scope);
+            }
+        }
+
+        builder.clientSettings(ClientSettings.builder()
+                .requireAuthorizationConsent(request.isRequireConsent())
+                .requireProofKey(request.isRequireProofKey())
+                .build());
+
+        builder.tokenSettings(TokenSettings.builder()
+                .accessTokenTimeToLive(Duration.ofSeconds(request.getAccessTokenValiditySeconds()))
+                .refreshTokenTimeToLive(Duration.ofSeconds(request.getRefreshTokenValiditySeconds()))
+                .reuseRefreshTokens(false)
+                .idTokenSignatureAlgorithm(SignatureAlgorithm.RS256)
+                .build());
+
+        RegisteredClient updatedClient = builder.build();
+        registeredClientRepository.save(updatedClient);
+        return updatedClient;
     }
 
     public boolean existsByClientId(String clientId) {
