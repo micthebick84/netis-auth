@@ -35,6 +35,10 @@ public class ClientController {
                                  BindingResult result,
                                  Model model,
                                  RedirectAttributes redirectAttributes) {
+        if (request.getClientSecret() == null || request.getClientSecret().isBlank()) {
+            result.rejectValue("clientSecret", "NotBlank", "클라이언트 시크릿은 필수입니다");
+        }
+
         if (result.hasErrors()) {
             List<Map<String, Object>> clients = clientService.findAllClients();
             model.addAttribute("clients", clients);
