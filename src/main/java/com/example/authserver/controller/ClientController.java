@@ -99,26 +99,51 @@ public class ClientController {
         if (client == null) {
             return "redirect:/clients";
         }
+        boolean requirePkce = client.getClientSettings().isRequireProofKey();
+        String codeVerifier = requirePkce ? generateCodeVerifier() : null;
+        String codeChallenge = requirePkce ? generateCodeChallenge(codeVerifier) : null;
+
         model.addAttribute("client", client);
-        model.addAttribute("authorizationUrl", buildAuthorizationUrl(client));
+        model.addAttribute("requirePkce", requirePkce);
+        model.addAttribute("codeVerifier", codeVerifier);
+        model.addAttribute("authorizationUrl", buildAuthorizationUrl(client, codeChallenge));
         return "client-test";
     }
 
-    private String buildAuthorizationUrl(RegisteredClient client) {
+    private String buildAuthorizationUrl(RegisteredClient client, String codeChallenge) {
         StringBuilder url = new StringBuilder("http://localhost:9000/oauth2/authorize?");
         url.append("response_type=code");
-        url.append("&client_id=").append(client.getClientId());
+        url.append("&client_id=").append(java.net.URLEncoder.encode(client.getClientId(), java.nio.charset.StandardCharsets.UTF_8));
 
-        // 첫 번째 redirect_uri 사용
         String redirectUri = client.getRedirectUris().stream().findFirst().orElse("");
-        url.append("&redirect_uri=").append(redirectUri);
+        url.append("&redirect_uri=").append(java.net.URLEncoder.encode(redirectUri, java.nio.charset.StandardCharsets.UTF_8));
 
-        // scopes
         String scopes = String.join(" ", client.getScopes());
-        url.append("&scope=").append(scopes.replace(" ", "%20"));
+        url.append("&scope=").append(java.net.URLEncoder.encode(scopes, java.nio.charset.StandardCharsets.UTF_8));
 
         url.append("&state=").append(java.util.UUID.randomUUID().toString().substring(0, 8));
 
+        if (codeChallenge != null) {
+            url.append("&code_challenge=").append(codeChallenge);
+            url.append("&code_challenge_method=S256");
+        }
+
         return url.toString();
+    }
+
+    private String generateCodeVerifier() {
+        byte[] bytes = new byte[32];
+        new java.security.SecureRandom().nextBytes(bytes);
+        return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private String generateCodeChallenge(String verifier) {
+        try {
+            byte[] hash = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(verifier.getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+            return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }

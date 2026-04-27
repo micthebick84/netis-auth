@@ -24,7 +24,9 @@ INSERT INTO authorities (user_id, authority)
 SELECT id, 'ROLE_USER' FROM users WHERE username = 'user'
 ON CONFLICT (user_id, authority) DO NOTHING;
 
--- 샘플 OAuth2 클라이언트 등록
+-- nuxt_practice 프론트엔드용 OAuth2 클라이언트
+-- nuxt.config.ts의 runtimeConfig.public.oauth 설정과 동기화
+-- client_secret 평문: secret123
 INSERT INTO oauth2_registered_client (
     id,
     client_id,
@@ -33,18 +35,20 @@ INSERT INTO oauth2_registered_client (
     client_authentication_methods,
     authorization_grant_types,
     redirect_uris,
+    post_logout_redirect_uris,
     scopes,
     client_settings,
     token_settings
 ) VALUES (
-    'sample-client-id',
-    'sample-client',
-    '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi',
-    'Sample Client Application',
+    'nuxt-app-id',
+    'nuxt-app',
+    '$2b$12$0gh/fFhmRNx7CmoicDgOJOLV6GmumVPAYvcr3qJmxOg6lpuzvQi7W',
+    'Nuxt Frontend Application',
     'client_secret_basic,client_secret_post',
-    'authorization_code,refresh_token,client_credentials',
-    'http://localhost:8080/login/oauth2/code/sample-client',
+    'authorization_code,refresh_token',
+    'http://localhost:3000/auth/callback',
+    'http://localhost:3000/login?logout=true,http://localhost:3000/',
     'openid,profile,email',
-    '{"@class":"java.util.Collections$UnmodifiableMap","settings.client.require-proof-key":false,"settings.client.require-authorization-consent":true}',
-    '{"@class":"java.util.Collections$UnmodifiableMap","settings.token.reuse-refresh-tokens":true,"settings.token.id-token-signature-algorithm":["org.springframework.security.oauth2.jose.jws.SignatureAlgorithm","RS256"],"settings.token.access-token-time-to-live":["java.time.Duration",3600.000000000],"settings.token.access-token-format":{"@class":"org.springframework.security.oauth2.server.authorization.settings.OAuth2TokenFormat","value":"self-contained"},"settings.token.refresh-token-time-to-live":["java.time.Duration",86400.000000000],"settings.token.authorization-code-time-to-live":["java.time.Duration",300.000000000],"settings.token.device-code-time-to-live":["java.time.Duration",300.000000000]}'
+    '{"@class":"java.util.Collections$UnmodifiableMap","settings.client.require-proof-key":false,"settings.client.require-authorization-consent":false}',
+    '{"@class":"java.util.Collections$UnmodifiableMap","settings.token.reuse-refresh-tokens":false,"settings.token.id-token-signature-algorithm":["org.springframework.security.oauth2.jose.jws.SignatureAlgorithm","RS256"],"settings.token.access-token-time-to-live":["java.time.Duration",3600.000000000],"settings.token.access-token-format":{"@class":"org.springframework.security.oauth2.server.authorization.settings.OAuth2TokenFormat","value":"self-contained"},"settings.token.refresh-token-time-to-live":["java.time.Duration",604800.000000000],"settings.token.authorization-code-time-to-live":["java.time.Duration",300.000000000],"settings.token.device-code-time-to-live":["java.time.Duration",300.000000000]}'
 ) ON CONFLICT (client_id) DO NOTHING;

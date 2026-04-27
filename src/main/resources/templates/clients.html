@@ -106,6 +106,7 @@
             cursor: pointer;
             text-decoration: none;
             text-align: center;
+            white-space: nowrap;
             transition: background 0.3s ease;
         }
         .btn-primary {
@@ -328,13 +329,14 @@
                             <span th:each="scope : ${#strings.arraySplit(client.SCOPES, ',')}"
                                   class="scope-badge" th:text="${scope}">scope</span>
                         </td>
-                        <td th:text="${#temporals.format(client.CLIENT_ID_ISSUED_AT, 'yyyy-MM-dd HH:mm')}">2024-01-01</td>
+                        <td th:text="${client.CLIENT_ID_ISSUED_AT != null ? #dates.format(client.CLIENT_ID_ISSUED_AT, 'yyyy-MM-dd HH:mm') : ''}">2024-01-01</td>
                         <td class="actions">
-                            <button type="button" class="btn btn-secondary"
-                                    th:onclick="'openEditModal(\'' + ${client.CLIENT_ID} + '\')'">수정</button>
+                            <button type="button" class="btn btn-secondary edit-btn"
+                                    th:attr="data-client-id=${client.CLIENT_ID}">수정</button>
                             <a th:href="@{/clients/test/{clientId}(clientId=${client.CLIENT_ID})}" class="btn btn-info">테스트</a>
                             <form th:action="@{/clients/delete/{clientId}(clientId=${client.CLIENT_ID})}" method="post" style="display:inline"
-                                  onsubmit="return confirm('정말 삭제하시겠습니까?');">
+                                  th:attr="data-client-id=${client.CLIENT_ID}"
+                                  onsubmit="return confirm('클라이언트 ' + this.dataset.clientId + ' 및 관련 데이터(인가 토큰, 동의 정보)를 모두 삭제합니다. 계속하시겠습니까?');">
                                 <button type="submit" class="btn btn-danger">삭제</button>
                             </form>
                         </td>
@@ -458,16 +460,20 @@
                 document.getElementById('editRequireProofKey').checked =
                     settings['settings.client.require-proof-key'] === true;
 
-                var accessTTL = tokenSettings['settings.token.access-token-time-to-live'];
-                if (accessTTL) {
-                    var match = accessTTL.match(/PT(\d+(\.\d+)?)S/);
-                    if (match) document.getElementById('editAccessTokenTTL').value = parseInt(match[1]);
+                function durationSeconds(v) {
+                    if (v == null) return null;
+                    if (Array.isArray(v) && v.length >= 2 && typeof v[1] === 'number') return Math.round(v[1]);
+                    if (typeof v === 'number') return Math.round(v);
+                    if (typeof v === 'string') {
+                        var m = v.match(/PT(\d+(?:\.\d+)?)S/);
+                        if (m) return parseInt(m[1], 10);
+                    }
+                    return null;
                 }
-                var refreshTTL = tokenSettings['settings.token.refresh-token-time-to-live'];
-                if (refreshTTL) {
-                    var match2 = refreshTTL.match(/PT(\d+(\.\d+)?)S/);
-                    if (match2) document.getElementById('editRefreshTokenTTL').value = parseInt(match2[1]);
-                }
+                var accessSec = durationSeconds(tokenSettings['settings.token.access-token-time-to-live']);
+                if (accessSec != null) document.getElementById('editAccessTokenTTL').value = accessSec;
+                var refreshSec = durationSeconds(tokenSettings['settings.token.refresh-token-time-to-live']);
+                if (refreshSec != null) document.getElementById('editRefreshTokenTTL').value = refreshSec;
 
                 document.getElementById('editForm').action = '/clients/update/' + (data.client_id || data.CLIENT_ID);
                 document.getElementById('editModal').classList.add('active');
@@ -478,6 +484,14 @@
     function closeEditModal() {
         document.getElementById('editModal').classList.remove('active');
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.edit-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                openEditModal(btn.dataset.clientId);
+            });
+        });
+    });
     </script>
 </body>
 </html>
