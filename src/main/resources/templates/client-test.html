@@ -177,6 +177,13 @@
             <div class="step">
                 <div class="step-title"><span class="step-number">1</span> Authorization 요청</div>
                 <p style="margin-bottom: 10px; color: #666;">아래 버튼을 클릭하면 인가 페이지로 이동합니다. 로그인 후 동의하면 redirect_uri로 authorization code가 전달됩니다.</p>
+                <div th:if="${requirePkce}" style="background:#fff3cd; border:1px solid #ffeaa7; padding:12px; border-radius:5px; margin-bottom:10px; font-size:13px;">
+                    <strong>PKCE 필수 클라이언트:</strong> code_challenge가 자동 생성되어 URL에 포함되었습니다. 토큰 교환 시 아래 <code>code_verifier</code> 값을 사용하세요.
+                    <div style="margin-top:8px;">
+                        <strong>code_verifier:</strong>
+                        <code style="display:inline-block; background:#fff; padding:4px 8px; border-radius:3px; font-family:monospace; word-break:break-all;" th:text="${codeVerifier}">verifier</code>
+                    </div>
+                </div>
                 <div class="url-box" th:text="${authorizationUrl}">authorization url</div>
                 <a th:href="${authorizationUrl}" class="btn btn-primary" target="_blank">Authorization 요청 시작</a>
             </div>
@@ -191,7 +198,8 @@ curl -X POST http://localhost:9000/oauth2/token \
   -u "<span th:text="${client.clientId}">client_id</span>:YOUR_CLIENT_SECRET" \
   -d "grant_type=authorization_code" \
   -d "code=AUTHORIZATION_CODE" \
-  -d "redirect_uri=<span th:text="${#lists.isEmpty(client.redirectUris) ? '' : client.redirectUris.toArray()[0]}">redirect_uri</span>"
+  -d "redirect_uri=<span th:text="${#lists.isEmpty(client.redirectUris) ? '' : client.redirectUris.toArray()[0]}">redirect_uri</span>"<th:block th:if="${requirePkce}"> \
+  -d "code_verifier=<span th:text="${codeVerifier}">code_verifier</span>"</th:block>
                 </div>
             </div>
 

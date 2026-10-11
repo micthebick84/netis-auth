@@ -15,7 +15,6 @@ public class ClientRegistrationRequest {
     @Size(min = 3, max = 100, message = "클라이언트 ID는 3~100자여야 합니다")
     private String clientId;
 
-    @NotBlank(message = "클라이언트 시크릿은 필수입니다")
     @Size(min = 8, max = 255, message = "클라이언트 시크릿은 최소 8자여야 합니다")
     private String clientSecret;
 
