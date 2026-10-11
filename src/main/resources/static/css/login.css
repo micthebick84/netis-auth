@@ -1,0 +1,197 @@
+@charset "UTF-8";
+/* ============================================================
+   netis-auth 로그인 — NETIS 디자인 시스템 적용
+   2026-10-11 디자인 승인 B안: 분할 히어로(네이비 패널 + 흰 폼 패널), 버튼 "로그인".
+   토큰: 포인트 블루 #246BEB, Pretendard GOV, 24px 로그인 패널, 입력 44px/6px, 포커스 링.
+   900px 이하: 히어로가 상단 띠로 줄고 폼이 아래로 쌓인다.
+   ============================================================ */
+
+/* Pretendard GOV 가변 글꼴(OFL-1.1, fonts/LICENSE-PretendardGOV.txt). 설치돼 있으면 로컬 글꼴을 먼저 쓴다. */
+@font-face {
+  font-family: 'Pretendard GOV';
+  font-weight: 45 920;
+  font-style: normal;
+  font-display: swap;
+  src: local('Pretendard GOV Variable'), local('Pretendard GOV'),
+       url('../fonts/PretendardGOVVariable.woff2') format('woff2-variations');
+}
+
+:root {
+  --n-blue: #246BEB;
+  --n-blue-deep: #1D56BC;
+  --n-text: #292E41;
+  --n-text-strong: #1A1D2B;
+  --n-text-sub: #373F57;
+  --n-text-caption: #5E687F;
+  --n-text-muted: #8491A7;
+  --n-border-input: #B4C0D3;
+  --n-border-card: #D7DCE5;
+  --n-surface-soft: #F6F8FB;
+  --n-error-text: #D50136;
+  --n-error-bg: #FEECF0;
+  --n-error-border: #FCD4DE;
+  --n-success-text: #00754F;
+  --n-success-bg: #E9F7F0;
+  --n-success-border: #B7E6D2;
+  --font-sans: 'Pretendard GOV', -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-family: var(--font-sans);
+  color: var(--n-text);
+  background: var(--n-surface-soft);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+.login-main {
+  min-height: 100vh;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  padding: 48px 40px;
+}
+
+/* ── 히어로 패널 ─────────────────────────────────────── */
+.login-hero {
+  position: relative;
+  overflow: hidden;
+  flex: 1 1 420px;
+  max-width: 560px;
+  min-height: 520px;
+  border-radius: 32px;
+  background: linear-gradient(160deg, #0E44A6 0%, #003675 100%);
+  color: #FFFFFF;
+  padding: 48px 52px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.login-hero__glow { position: absolute; border-radius: 50%; pointer-events: none; }
+.login-hero__glow--1 { right: -80px; top: -60px; width: 320px; height: 320px; background: radial-gradient(circle, rgba(74,142,255,.55), transparent 70%); }
+.login-hero__glow--2 { left: -60px; bottom: -80px; width: 280px; height: 280px; background: radial-gradient(circle, rgba(55,190,227,.35), transparent 70%); }
+.login-hero__logo { position: relative; height: 34px; width: auto; align-self: flex-start; }
+.login-hero__foot { position: relative; display: flex; flex-direction: column; gap: 20px; }
+.login-hero__tagline { margin: 0; font-size: 16px; font-weight: 500; line-height: 1.6; color: rgba(255,255,255,.82); }
+.login-hero__chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.login-hero__chip {
+  font-size: 13px;
+  font-weight: 600;
+  color: #FFFFFF;
+  background: rgba(255,255,255,.14);
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 9999px;
+  padding: 7px 16px;
+}
+
+/* ── 폼 패널 ─────────────────────────────────────────── */
+.login-card {
+  flex: 0 1 416px;
+  width: 100%;
+  max-width: 416px;
+  background: #FFFFFF;
+  border: 1px solid var(--n-border-card);
+  border-radius: 24px;
+  box-shadow: 0 16px 40px rgba(0,0,0,.06);
+  padding: 48px 40px 40px;
+  display: flex;
+  flex-direction: column;
+}
+.login-card__logo { height: 34px; width: auto; align-self: center; }
+.login-card__title { margin: 24px 0 0; font-size: 21px; font-weight: 700; text-align: center; color: var(--n-text-strong); }
+
+.alert {
+  margin-top: 20px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.alert-danger { background: var(--n-error-bg); border-color: var(--n-error-border); color: var(--n-error-text); }
+.alert-success { background: var(--n-success-bg); border-color: var(--n-success-border); color: var(--n-success-text); }
+
+.login-fields { margin-top: 28px; display: flex; flex-direction: column; gap: 16px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label { font-size: 13px; font-weight: 600; color: var(--n-text-sub); }
+.form-group input,
+.form-group select {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--n-border-input);
+  border-radius: 6px;
+  background: #FFFFFF;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--n-text);
+  transition: border-color .12s, box-shadow .12s;
+}
+.form-group input::placeholder { color: var(--n-text-muted); }
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--n-blue);
+  box-shadow: 0 0 0 3px rgba(36,107,235,.15);
+}
+
+.btn {
+  width: 100%;
+  height: 44px;
+  margin-top: 24px;
+  border: 0;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color .12s;
+}
+.btn-primary { background: var(--n-blue); color: #FFFFFF; }
+.btn-primary:hover { background: var(--n-blue-deep); }
+.btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(36,107,235,.3); }
+.btn:disabled { opacity: .4; cursor: default; }
+
+.register-link { margin: 20px 0 0; text-align: center; font-size: 14px; color: var(--n-text-caption); }
+.register-link a { color: var(--n-blue); font-weight: 600; text-decoration: none; }
+.register-link a:hover { color: var(--n-blue-deep); text-decoration: underline; }
+
+/* ── 개발용 OAuth2 옵션 박스(기본 숨김) — 켜서 쓸 때의 최소 스타일 ── */
+.oauth2-option {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--n-border-card);
+  border-radius: 8px;
+  background: var(--n-surface-soft);
+}
+.checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--n-text); cursor: pointer; }
+.checkbox-label input[type="checkbox"] { width: auto; height: auto; }
+.oauth2-settings { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--n-border-card); display: flex; flex-direction: column; gap: 6px; }
+.oauth2-settings label { font-size: 13px; font-weight: 600; color: var(--n-text-sub); margin-top: 6px; }
+.oauth2-settings select,
+.oauth2-settings input { width: 100%; height: 36px; padding: 0 10px; border: 1px solid var(--n-border-input); border-radius: 6px; font-family: inherit; font-size: 13px; }
+
+/* ── 좁은 화면: 히어로는 상단 띠, 폼은 아래 ─────────────── */
+@media (max-width: 900px) {
+  .login-main { padding: 0 0 24px; gap: 16px; align-items: flex-start; }
+  .login-hero {
+    flex: 1 1 100%;
+    max-width: none;
+    min-height: 0;
+    border-radius: 0;
+    padding: 24px 20px 28px;
+    gap: 18px;
+    justify-content: flex-start;
+  }
+  .login-hero__logo { height: 28px; }
+  .login-hero__foot { flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; }
+  .login-hero__tagline { font-size: 13px; line-height: 1.4; }
+  .login-hero__chips { gap: 6px; }
+  .login-hero__chip { font-size: 12px; padding: 5px 12px; }
+  .login-card { margin: 0 16px; padding: 32px 24px 28px; }
+  .login-card__logo { height: 30px; }
+}
