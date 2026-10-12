@@ -2,6 +2,7 @@ package com.example.authserver.config;
 
 import com.example.authserver.service.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -26,6 +27,10 @@ public class SecurityConfig {
     private final CorsConfigurationSource corsConfigurationSource;
     private final OAuth2LoginParameterFilter oAuth2LoginParameterFilter;
 
+    // false면 회원가입 경로를 모두 차단 (공개 배포용, env REGISTRATION_ENABLED). 매처 순서상 permitAll보다 먼저 걸어야 함.
+    @Value("${app.registration-enabled:true}")
+    private boolean registrationEnabled;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12);
@@ -45,10 +50,14 @@ public class SecurityConfig {
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/logout", "/api/auth/logout/bearer").permitAll()
-                .anyRequest().authenticated()
-            )
+            .authorizeHttpRequests(auth -> {
+                if (!registrationEnabled) {
+                    auth.requestMatchers("/api/auth/register").denyAll();
+                }
+                auth
+                    .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/logout", "/api/auth/logout/bearer").permitAll()
+                    .anyRequest().authenticated();
+            })
             .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
 
         return http.build();
@@ -59,11 +68,15 @@ public class SecurityConfig {
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login", "/register", "/oauth/register", "/css/**", "/js/**", "/images/**", "/fonts/**", "/error").permitAll()
-                .requestMatchers("/actuator/**").permitAll()
-                .anyRequest().authenticated()
-            )
+            .authorizeHttpRequests(auth -> {
+                if (!registrationEnabled) {
+                    auth.requestMatchers("/register", "/oauth/register").denyAll();
+                }
+                auth
+                    .requestMatchers("/login", "/register", "/oauth/register", "/css/**", "/js/**", "/images/**", "/fonts/**", "/error").permitAll()
+                    .requestMatchers("/actuator/**").permitAll()
+                    .anyRequest().authenticated();
+            })
             .formLogin(form -> form
                 .loginPage("/login")
                 .loginProcessingUrl("/login")

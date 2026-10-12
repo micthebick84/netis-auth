@@ -61,7 +61,7 @@
 
         <button type="submit" class="btn btn-primary">로그인</button>
 
-        <p class="register-link">계정이 없으신가요? <a th:href="@{/register}">회원가입</a></p>
+        <p class="register-link" th:if="${registrationEnabled}">계정이 없으신가요? <a th:href="@{/register}">회원가입</a></p>
     </form>
 </main>
 
