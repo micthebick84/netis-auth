@@ -17,24 +17,26 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: true
+    show-sql: ${JPA_SHOW_SQL:true}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
   sql:
     init:
-      mode: always
+      # 공개 배포에서는 never 권장: data.sql이 기동마다 샘플 계정/클라이언트를 다시 넣음 (스키마가 이미 있을 때만 — 빈 DB 첫 기동에는 always)
+      mode: ${SQL_INIT_MODE:always}
       schema-locations: classpath:db/postgres/schema.sql
       data-locations: classpath:db/postgres/data.sql
       continue-on-error: true
 
 logging:
   level:
-    org.springframework.security: DEBUG
-    org.springframework.security.oauth2: DEBUG
-    org.springframework.security.oauth2.server.authorization: TRACE
-    org.springframework.security.oauth2.server.authorization.oidc: TRACE
+    # DEBUG/TRACE는 토큰·인가 코드가 로그에 남음. 공개 배포에서는 둘 다 INFO로.
+    org.springframework.security: ${SECURITY_LOG_LEVEL:DEBUG}
+    org.springframework.security.oauth2: ${SECURITY_LOG_LEVEL:DEBUG}
+    org.springframework.security.oauth2.server.authorization: ${AUTHZ_LOG_LEVEL:TRACE}
+    org.springframework.security.oauth2.server.authorization.oidc: ${AUTHZ_LOG_LEVEL:TRACE}
 
 # Authorization Server issuer
 authorization-server:
@@ -44,5 +46,7 @@ authorization-server:
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
   backend-url: ${BACKEND_URL:http://localhost:8080}
+  # 회원가입(/register, /oauth/register, /api/auth/register) 허용 여부. false면 세 경로 denyAll + 로그인 화면의 회원가입 링크 숨김
+  registration-enabled: ${REGISTRATION_ENABLED:true}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080,http://10.1.1.75:3000,http://10.1.1.75:8080}
