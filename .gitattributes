@@ -1,0 +1,4 @@
+# Gradle wrapper 스크립트 줄바꿈 고정 (Windows core.autocrlf=true에서도 gradlew는 LF로)
+/gradlew text eol=lf
+*.bat text eol=crlf
+*.jar binary
