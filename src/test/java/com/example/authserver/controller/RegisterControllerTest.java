@@ -6,9 +6,10 @@ import com.example.authserver.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -18,7 +19,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(RegisterController.class)
+/**
+ * 회원가입 화면(/register) — 실제 SecurityConfig(가입 허용 기본값에서 permitAll)를 거쳐 검증한다.
+ * @WebMvcTest 슬라이스는 SecurityConfig를 불러오지 않아 기본 보안이 401을 냈고, 컨트롤러의
+ * OAuth2ClientService 의존성도 없어 컨텍스트가 뜨지 않았다. 다른 MVC 테스트와 같은 test 프로필(H2) 구성.
+ */
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
 class RegisterControllerTest {
 
     @Autowired
