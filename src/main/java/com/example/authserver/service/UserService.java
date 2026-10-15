@@ -4,20 +4,36 @@ import com.example.authserver.dto.RegisterRequest;
 import com.example.authserver.entity.Authority;
 import com.example.authserver.entity.User;
 import com.example.authserver.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Locale;
+
 @Service
-@RequiredArgsConstructor
 @Transactional
 public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final String allowedEmailDomain;
 
+    public UserService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder,
+                       @Value("${app.registration.allowed-email-domain:hamonsoft.co.kr}") String allowedEmailDomain) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.allowedEmailDomain = allowedEmailDomain.toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * 계정 신청 — 관리자 승인 전까지 로그인할 수 없는 비활성 계정으로 만든다(/admin/signups에서 승인).
+     */
     public User registerUser(RegisterRequest request) {
+        if (!request.getEmail().toLowerCase(Locale.ROOT).endsWith("@" + allowedEmailDomain)) {
+            throw new IllegalArgumentException("@" + allowedEmailDomain + " 이메일만 신청할 수 있습니다");
+        }
         // 중복 체크
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalArgumentException("이미 사용 중인 사용자명입니다");
@@ -26,12 +42,11 @@ public class UserService {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다");
         }
 
-        // 사용자 생성
         User user = new User();
         user.setUsername(request.getUsername());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setEmail(request.getEmail());
-        user.setEnabled(true);
+        user.setEnabled(false);
         user.setAccountNonLocked(true);
 
         // 기본 권한 부여
