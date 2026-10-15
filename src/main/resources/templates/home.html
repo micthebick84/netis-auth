@@ -104,7 +104,8 @@
     <div class="home-container">
         <h1>Auth Server</h1>
 
-        <div class="nav-links">
+        <div class="nav-links" th:if="${isAdmin}">
+            <a th:href="@{/admin/signups}">가입 신청 관리</a>
             <a th:href="@{/clients}">OAuth2 클라이언트 관리</a>
         </div>
 

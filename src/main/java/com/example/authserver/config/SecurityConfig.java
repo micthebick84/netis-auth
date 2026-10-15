@@ -77,6 +77,8 @@ public class SecurityConfig {
                 auth
                     .requestMatchers("/login", "/register", "/css/**", "/js/**", "/images/**", "/fonts/**", "/error").permitAll()
                     .requestMatchers("/actuator/**").permitAll()
+                    // 계정 신청이 열리면 일반 사용자도 로그인한다 — 관리 화면은 관리자만.
+                    .requestMatchers("/admin/**", "/clients/**").hasRole("ADMIN")
                     .anyRequest().authenticated();
             })
             .formLogin(form -> form
