@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>회원가입 - Auth Server</title>
+    <title>계정 신청 - Auth Server</title>
     <link rel="stylesheet" th:href="@{/css/style.css}">
     <style>
         * {
@@ -57,6 +57,11 @@
         .form-group input.error {
             border-color: #dc3545;
         }
+        .field-hint {
+            color: #666;
+            font-size: 13px;
+            margin-top: 5px;
+        }
         .error-message {
             color: #dc3545;
             font-size: 14px;
@@ -105,7 +110,7 @@
 </head>
 <body>
     <div class="register-container">
-        <h1>회원가입</h1>
+        <h1>계정 신청</h1>
 
         <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
 
@@ -116,7 +121,7 @@
                        id="username"
                        th:field="*{username}"
                        th:classappend="${#fields.hasErrors('username')} ? 'error' : ''"
-                       placeholder="4자 이상 입력하세요">
+                       placeholder="4~20자로 입력하세요">
                 <div th:if="${#fields.hasErrors('username')}" class="error-message">
                     <span th:errors="*{username}"></span>
                 </div>
@@ -128,7 +133,8 @@
                        id="email"
                        th:field="*{email}"
                        th:classappend="${#fields.hasErrors('email')} ? 'error' : ''"
-                       placeholder="example@email.com">
+                       placeholder="name@hamonsoft.co.kr">
+                <div class="field-hint">@hamonsoft.co.kr 주소만 신청할 수 있습니다. 관리자 승인 후 로그인할 수 있습니다.</div>
                 <div th:if="${#fields.hasErrors('email')}" class="error-message">
                     <span th:errors="*{email}"></span>
                 </div>
@@ -146,7 +152,7 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn">가입하기</button>
+            <button type="submit" class="btn">신청하기</button>
         </form>
 
         <div class="login-link">

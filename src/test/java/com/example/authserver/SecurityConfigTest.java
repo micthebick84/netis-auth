@@ -44,7 +44,7 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("회원가입 페이지는 누구나 접근 가능")
+    @DisplayName("계정 신청 페이지는 누구나 접근 가능")
     void registerPage_Accessible() throws Exception {
         mockMvc.perform(get("/register"))
                 .andExpect(status().isOk());

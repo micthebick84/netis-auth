@@ -43,7 +43,8 @@ class LoginPageTest {
                 .andExpect(content().string(containsString("/images/logo-login.png")))
                 .andExpect(content().string(containsString("name=\"username\"")))
                 .andExpect(content().string(containsString("name=\"password\"")))
-                .andExpect(content().string(containsString("회원가입")))
+                .andExpect(content().string(containsString("계정 신청")))
+                .andExpect(content().string(not(containsString("회원가입"))))
                 .andExpect(content().string(not(containsString("Auth Server"))))
                 .andExpect(content().string(not(containsString("#667eea"))));
     }
@@ -57,7 +58,7 @@ class LoginPageTest {
     }
 
     @Test
-    @DisplayName("상태 메시지 — ?error 는 오류 톤, ?logout 은 성공 톤으로 LoginController 문자열 그대로")
+    @DisplayName("상태 메시지 — ?error 는 오류 톤, ?logout 은 성공 톤, ?requested 는 성공 톤, ?pending 은 오류 톤으로 LoginController 문자열 그대로")
     void loginPage_stateMessages() throws Exception {
         mockMvc.perform(get("/login").param("error", ""))
                 .andExpect(status().isOk())
@@ -69,8 +70,12 @@ class LoginPageTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("alert alert-success")))
                 .andExpect(content().string(containsString("로그아웃되었습니다")));
-        mockMvc.perform(get("/login").param("registered", ""))
-                .andExpect(content().string(containsString("회원가입이 완료되었습니다. 로그인해주세요.")));
+        mockMvc.perform(get("/login").param("requested", ""))
+                .andExpect(content().string(containsString("alert alert-success")))
+                .andExpect(content().string(containsString("계정 신청이 접수되었습니다. 관리자 승인 후 로그인할 수 있습니다.")));
+        mockMvc.perform(get("/login").param("pending", ""))
+                .andExpect(content().string(containsString("alert alert-danger")))
+                .andExpect(content().string(containsString("관리자 승인 대기 중인 계정입니다.")));
     }
 
     @Test

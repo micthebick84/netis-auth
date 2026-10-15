@@ -20,7 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * 공개 배포 하드닝 — app.registration-enabled=false (env REGISTRATION_ENABLED=false).
- * 회원가입 세 경로가 막히고, 로그인 화면에 회원가입 링크가 나오지 않아야 한다.
+ * 계정 신청 세 경로가 막히고, 로그인 화면에 계정 신청 링크가 나오지 않아야 한다.
  * 기본값(true)일 때의 동작은 LoginPageTest·SecurityConfigTest가 가드한다.
  */
 @SpringBootTest(properties = "app.registration-enabled=false")
@@ -62,7 +62,7 @@ class RegistrationDisabledTest {
         mockMvc.perform(get("/login"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("class=\"login-card\"")))
-                .andExpect(content().string(not(containsString("회원가입"))))
+                .andExpect(content().string(not(containsString("계정 신청"))))
                 .andExpect(content().string(not(containsString("href=\"/register\""))));
     }
 }

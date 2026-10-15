@@ -12,6 +12,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -20,7 +21,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * 회원가입 화면(/register) — 실제 SecurityConfig(가입 허용 기본값에서 permitAll)를 거쳐 검증한다.
+ * 계정 신청 화면(/register) — 실제 SecurityConfig(가입 허용 기본값에서 permitAll)를 거쳐 검증한다.
  * @WebMvcTest 슬라이스는 SecurityConfig를 불러오지 않아 기본 보안이 401을 냈고, 컨트롤러의
  * OAuth2ClientService 의존성도 없어 컨텍스트가 뜨지 않았다. 다른 MVC 테스트와 같은 test 프로필(H2) 구성.
  */
@@ -41,7 +42,9 @@ class RegisterControllerTest {
         mockMvc.perform(get("/register"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("register"))
-                .andExpect(model().attributeExists("registerRequest"));
+                .andExpect(model().attributeExists("registerRequest"))
+                .andExpect(content().string(containsString("계정 신청")))
+                .andExpect(content().string(containsString("@hamonsoft.co.kr")));
     }
 
     @Test
@@ -54,10 +57,10 @@ class RegisterControllerTest {
         mockMvc.perform(post("/register")
                         .param("username", "testuser")
                         .param("password", "password123")
-                        .param("email", "test@example.com")
+                        .param("email", "test@hamonsoft.co.kr")
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/login?registered"));
+                .andExpect(redirectedUrl("/login?requested"));
     }
 
     @Test
@@ -70,6 +73,19 @@ class RegisterControllerTest {
                         .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("register"));
+    }
+
+    @Test
+    @DisplayName("사용자명이 20자를 넘으면 신청 화면을 다시 보여 준다")
+    void registerUser_UsernameTooLong() throws Exception {
+        mockMvc.perform(post("/register")
+                        .param("username", "a".repeat(21))
+                        .param("password", "password123")
+                        .param("email", "long@hamonsoft.co.kr")
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("register"))
+                .andExpect(model().attributeHasFieldErrors("registerRequest", "username"));
     }
 
     @Test

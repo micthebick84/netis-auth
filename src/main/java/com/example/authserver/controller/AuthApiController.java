@@ -58,7 +58,7 @@ public class AuthApiController {
     }
 
     /**
-     * 사용자 회원가입 API
+     * 계정 신청 API (비활성 계정 생성, 관리자 승인 후 로그인)
      * POST /api/auth/register
      */
     @PostMapping("/register")
@@ -72,7 +72,7 @@ public class AuthApiController {
             userData.put("email", user.getEmail());
 
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(ApiResponse.success("회원가입이 완료되었습니다", userData));
+                    .body(ApiResponse.success("계정 신청이 접수되었습니다. 관리자 승인 후 로그인할 수 있습니다", userData));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(e.getMessage()));

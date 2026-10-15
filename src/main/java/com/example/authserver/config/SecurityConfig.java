@@ -69,11 +69,13 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .authorizeHttpRequests(auth -> {
+                // 신청 직후 바로 인가 흐름으로 넘기는 경로 — 승인형 신청과 맞지 않아 항상 막는다.
+                auth.requestMatchers("/oauth/register").denyAll();
                 if (!registrationEnabled) {
-                    auth.requestMatchers("/register", "/oauth/register").denyAll();
+                    auth.requestMatchers("/register").denyAll();
                 }
                 auth
-                    .requestMatchers("/login", "/register", "/oauth/register", "/css/**", "/js/**", "/images/**", "/fonts/**", "/error").permitAll()
+                    .requestMatchers("/login", "/register", "/css/**", "/js/**", "/images/**", "/fonts/**", "/error").permitAll()
                     .requestMatchers("/actuator/**").permitAll()
                     .anyRequest().authenticated();
             })
