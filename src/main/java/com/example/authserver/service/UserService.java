@@ -33,21 +33,22 @@ public class UserService {
      * 계정 신청 — 관리자 승인 전까지 로그인할 수 없는 비활성 계정으로 만든다(/admin/signups에서 승인).
      */
     public User registerUser(RegisterRequest request) {
-        if (!request.getEmail().toLowerCase(Locale.ROOT).endsWith("@" + allowedEmailDomain)) {
+        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+        if (!email.endsWith("@" + allowedEmailDomain)) {
             throw new IllegalArgumentException("@" + allowedEmailDomain + " 이메일만 신청할 수 있습니다");
         }
         // 중복 체크
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalArgumentException("이미 사용 중인 사용자명입니다");
         }
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다");
         }
 
         User user = new User();
         user.setUsername(request.getUsername());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setEmail(request.getEmail());
+        user.setEmail(email);
         user.setEnabled(false);
         user.setAccountNonLocked(true);
 

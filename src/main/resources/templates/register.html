@@ -121,7 +121,7 @@
                        id="username"
                        th:field="*{username}"
                        th:classappend="${#fields.hasErrors('username')} ? 'error' : ''"
-                       placeholder="4~20자로 입력하세요">
+                       placeholder="영문·숫자·._- 4~20자">
                 <div th:if="${#fields.hasErrors('username')}" class="error-message">
                     <span th:errors="*{username}"></span>
                 </div>

@@ -5,6 +5,8 @@ import com.example.authserver.entity.User;
 import com.example.authserver.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -82,6 +84,20 @@ class RegisterControllerTest {
                         .param("username", "a".repeat(21))
                         .param("password", "password123")
                         .param("email", "long@hamonsoft.co.kr")
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("register"))
+                .andExpect(model().attributeHasFieldErrors("registerRequest", "username"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"аdmin1", "bad name"})
+    @DisplayName("허용 문자 밖(키릴 문자, 공백)의 사용자명은 신청 화면을 다시 보여 준다")
+    void registerUser_UsernameDisallowedChars(String username) throws Exception {
+        mockMvc.perform(post("/register")
+                        .param("username", username)
+                        .param("password", "password123")
+                        .param("email", "chars@hamonsoft.co.kr")
                         .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("register"))

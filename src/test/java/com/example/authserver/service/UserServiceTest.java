@@ -116,7 +116,19 @@ class UserServiceTest {
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        assertThat(userService.registerUser(registerRequest).getEmail()).isEqualTo("Kim@HamonSoft.co.kr");
+        assertThat(userService.registerUser(registerRequest).getEmail()).isEqualTo("kim@hamonsoft.co.kr");
+    }
+
+    @Test
+    @DisplayName("이메일 중복은 소문자로 정규화해 확인한다")
+    void registerUser_DuplicateEmail_CaseInsensitive() {
+        registerRequest.setEmail("Dup@HamonSoft.co.kr");
+        when(userRepository.existsByUsername(anyString())).thenReturn(false);
+        when(userRepository.existsByEmail("dup@hamonsoft.co.kr")).thenReturn(true);
+
+        assertThatThrownBy(() -> userService.registerUser(registerRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("이미 사용 중인 이메일입니다");
     }
 
     @ParameterizedTest

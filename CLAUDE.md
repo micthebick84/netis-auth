@@ -16,7 +16,7 @@
 
 | env | 기본 | 공개 배포 | 효과 |
 |---|---|---|---|
-| `REGISTRATION_ENABLED` (`app.registration-enabled`) | true | false | `true`면 로그인 화면에 "계정 신청" 링크. 신청 계정은 비활성(`enabled=false`)으로 저장되고 관리자가 `/admin/signups`에서 승인(활성화)·거절(삭제). false면 `/register`·`/api/auth/register` denyAll + 링크 숨김. `/oauth/register`는 항상 차단. `RegistrationDisabledTest`·`SignupFlowTest`·`SignupAdminTest`가 가드 |
+| `REGISTRATION_ENABLED` (`app.registration-enabled`) | true | true (승인형 신청) | `true`면 로그인 화면에 "계정 신청" 링크. 신청 계정은 비활성(`enabled=false`)으로 저장되고 관리자가 `/admin/signups`에서 승인(활성화)·거절(삭제). false면 `/register`·`/api/auth/register` denyAll + 링크 숨김. `/oauth/register`는 항상 차단. `RegistrationDisabledTest`·`SignupFlowTest`·`SignupAdminTest`가 가드 |
 | `REGISTRATION_ALLOWED_EMAIL_DOMAIN` (`app.registration.allowed-email-domain`) | hamonsoft.co.kr | hamonsoft.co.kr | 신청 이메일 도메인 — 소문자 비교, `@도메인`으로 끝나야 함 |
 | `SQL_INIT_MODE` (`spring.sql.init.mode`) | always | never | 기동마다 `data.sql`이 샘플 계정·클라이언트를 다시 넣지 않게. ⚠️ 빈 DB 첫 기동은 always여야 스키마가 생긴다 |
 | `SECURITY_LOG_LEVEL` / `AUTHZ_LOG_LEVEL` | DEBUG / TRACE | INFO | DEBUG/TRACE는 토큰·인가 코드를 로그에 남긴다 |
@@ -24,7 +24,11 @@
 
 ## 계정 신청·관리 화면 (2026-10-15)
 
-- 신청(`/register`, `/api/auth/register`) = 비활성 계정 + `ROLE_USER`. 사용자명 4~20자(Symphony `com."user".user_id` VARCHAR(20)). 대기 계정 로그인은 `/login?pending`(실패 횟수 미집계 — Spring이 비밀번호보다 enabled를 먼저 봐서 대기 여부는 비밀번호 없이도 드러남, 의도적 수용).
+- 신청(`/register`, `/api/auth/register`) = 비활성 계정 + `ROLE_USER`. 사용자명 영문·숫자·`.`·`_`·`-` 4~20자(키릴 등 유사 문자·공백 불가; Symphony `com."user".user_id` VARCHAR(20)). 대기 계정 로그인은 `/login?pending`(실패 횟수 미집계 — Spring이 비밀번호보다 enabled를 먼저 봐서 대기 여부는 비밀번호 없이도 드러남, 의도적 수용).
 - `/admin/**`·`/clients/**`는 `ROLE_ADMIN` 전용(`AdminAccessTest`). 홈은 관리자에게만 관리 링크를 보인다.
 - 승인된 사용자의 Symphony `com."user"` 행은 commanCenter가 첫 API 요청 때 자동 생성한다.
+- 공개 서버에서 켜기 전/운영 수칙:
+  - 승인 전 신청자 본인 확인(사내 메신저 등) — 이메일 소유는 확인하지 않으므로, 기존 Symphony 사용자(`com."user"`)와 같은 사용자명으로 신청하면 승인 시 그 사람의 작업·질문을 넘겨받는다. 이미 `com."user"`에 있는 아이디로 온 신청은 특히 확인.
+  - 켜기 전 `SELECT username FROM users WHERE NOT enabled` — 기존 비활성 계정이 "신청"으로 보여 승인될 수 있다.
+  - Cloudflare 규칙으로 `/register`·`/api/auth/register` POST에 IP당 속도 제한(신청 엔드포인트는 인증 없이 행을 만든다).
 - 스펙: `docs/superpowers/specs/2026-10-15-signup-approval-design.md`
