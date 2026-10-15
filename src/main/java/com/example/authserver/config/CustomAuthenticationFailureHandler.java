@@ -4,6 +4,7 @@ import com.example.authserver.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
@@ -26,6 +27,12 @@ public class CustomAuthenticationFailureHandler implements AuthenticationFailure
     public void onAuthenticationFailure(HttpServletRequest request,
                                         HttpServletResponse response,
                                         AuthenticationException exception) throws IOException {
+        // 승인 대기(비활성) 계정 — 실패 횟수를 올리지 않는다(Spring은 비밀번호보다 enabled를 먼저 본다).
+        if (exception instanceof DisabledException) {
+            response.sendRedirect("/login?pending");
+            return;
+        }
+
         String username = request.getParameter("username");
 
         userRepository.findByUsername(username).ifPresent(user -> {

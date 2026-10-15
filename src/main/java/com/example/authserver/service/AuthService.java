@@ -42,9 +42,9 @@ public class AuthService {
             }
         }
 
-        // 계정 활성화 확인
+        // 계정 활성화 확인 — 신청 후 관리자 승인 전인 계정
         if (!user.isEnabled()) {
-            throw new BadCredentialsException("비활성화된 계정입니다");
+            throw new BadCredentialsException("관리자 승인 대기 중인 계정입니다");
         }
 
         // 비밀번호 확인

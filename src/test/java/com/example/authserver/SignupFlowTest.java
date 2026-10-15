@@ -1,5 +1,6 @@
 package com.example.authserver;
 
+import com.example.authserver.entity.Authority;
 import com.example.authserver.entity.User;
 import com.example.authserver.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -9,12 +10,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
+import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -33,6 +38,20 @@ class SignupFlowTest {
 
     @Autowired
     UserRepository userRepository;
+
+    @Autowired
+    PasswordEncoder passwordEncoder;
+
+    private User saveUser(String username, boolean enabled) {
+        User u = new User();
+        u.setUsername(username);
+        u.setPassword(passwordEncoder.encode("Password1!"));
+        u.setEmail(username + "@hamonsoft.co.kr");
+        u.setEnabled(enabled);
+        u.setAccountNonLocked(true);
+        u.addAuthority(new Authority("ROLE_USER"));
+        return userRepository.save(u);
+    }
 
     @AfterEach
     void cleanup() {
@@ -89,5 +108,53 @@ class SignupFlowTest {
         mockMvc.perform(get("/oauth/register"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrlPattern("**/login"));
+    }
+
+    @Test
+    @DisplayName("대기 계정 폼 로그인 → /login?pending, 실패 횟수 그대로")
+    void pendingUser_formLogin_redirectsToPending() throws Exception {
+        saveUser("t_pend1", false);
+
+        mockMvc.perform(formLogin("/login").user("t_pend1").password("Password1!"))
+                .andExpect(redirectedUrl("/login?pending"))
+                .andExpect(unauthenticated());
+
+        assertThat(userRepository.findByUsername("t_pend1").orElseThrow().getFailedAttempt()).isZero();
+    }
+
+    @Test
+    @DisplayName("대기 계정은 비밀번호가 틀려도 ?pending — 실패 횟수가 쌓여 잠기지 않는다")
+    void pendingUser_wrongPassword_doesNotCountOrLock() throws Exception {
+        saveUser("t_pend2", false);
+
+        for (int i = 0; i < 6; i++) {
+            mockMvc.perform(formLogin("/login").user("t_pend2").password("wrong-password"))
+                    .andExpect(redirectedUrl("/login?pending"));
+        }
+
+        User after = userRepository.findByUsername("t_pend2").orElseThrow();
+        assertThat(after.getFailedAttempt()).isZero();
+        assertThat(after.isAccountNonLocked()).isTrue();
+    }
+
+    @Test
+    @DisplayName("활성 계정은 기존처럼 로그인된다")
+    void activeUser_formLogin_authenticates() throws Exception {
+        saveUser("t_act1", true);
+
+        mockMvc.perform(formLogin("/login").user("t_act1").password("Password1!"))
+                .andExpect(authenticated().withUsername("t_act1"));
+    }
+
+    @Test
+    @DisplayName("대기 계정 API 로그인 → 401 + 승인 대기 메시지")
+    void pendingUser_apiLogin_isUnauthorizedWithMessage() throws Exception {
+        saveUser("t_pend3", false);
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"t_pend3\",\"password\":\"Password1!\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("관리자 승인 대기 중인 계정입니다"));
     }
 }
