@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -19,6 +20,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUsername(String username);
 
     boolean existsByEmail(String email);
+
+    /** 승인 대기(비활성) 계정 — 신청 순. */
+    List<User> findByEnabledFalseOrderByCreatedAtAsc();
 
     @Modifying
     @Query("UPDATE User u SET u.failedAttempt = :failedAttempt WHERE u.username = :username")

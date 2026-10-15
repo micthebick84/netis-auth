@@ -9,7 +9,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -64,5 +66,30 @@ public class UserService {
     @Transactional(readOnly = true)
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    @Transactional(readOnly = true)
+    public List<User> listPendingSignups() {
+        return userRepository.findByEnabledFalseOrderByCreatedAtAsc();
+    }
+
+    /** 대기 중인 신청만 승인한다. 이미 활성이거나 없으면 empty. */
+    public Optional<User> approveSignup(Long id) {
+        return userRepository.findById(id)
+                .filter(u -> !u.isEnabled())
+                .map(u -> {
+                    u.setEnabled(true);
+                    return u;
+                });
+    }
+
+    /** 대기 중인 신청만 삭제한다(권한 행은 cascade). 활성 계정은 절대 지우지 않는다. */
+    public Optional<User> rejectSignup(Long id) {
+        return userRepository.findById(id)
+                .filter(u -> !u.isEnabled())
+                .map(u -> {
+                    userRepository.delete(u);
+                    return u;
+                });
     }
 }

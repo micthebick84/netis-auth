@@ -37,7 +37,7 @@ class RegisterControllerTest {
     private UserService userService;
 
     @Test
-    @DisplayName("회원가입 페이지 표시")
+    @DisplayName("계정 신청 페이지 표시")
     void showRegistrationForm() throws Exception {
         mockMvc.perform(get("/register"))
                 .andExpect(status().isOk())
@@ -48,7 +48,7 @@ class RegisterControllerTest {
     }
 
     @Test
-    @DisplayName("회원가입 성공 시 로그인 페이지로 리다이렉트")
+    @DisplayName("계정 신청 성공 시 로그인 페이지로 리다이렉트")
     void registerUser_Success() throws Exception {
         User user = new User();
         user.setUsername("testuser");
@@ -64,7 +64,7 @@ class RegisterControllerTest {
     }
 
     @Test
-    @DisplayName("유효성 검증 실패 시 회원가입 페이지 재표시")
+    @DisplayName("유효성 검증 실패 시 계정 신청 페이지 재표시")
     void registerUser_ValidationError() throws Exception {
         mockMvc.perform(post("/register")
                         .param("username", "ab")  // 너무 짧음

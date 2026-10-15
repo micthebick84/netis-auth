@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 public class LoginController {
 
-    // 가입이 막혀 있으면(SecurityConfig가 /register를 denyAll) 로그인 화면에서 회원가입 링크를 숨긴다.
+    // 가입이 막혀 있으면(SecurityConfig가 /register를 denyAll) 로그인 화면에서 계정 신청 링크를 숨긴다.
     @Value("${app.registration-enabled:true}")
     private boolean registrationEnabled;
 

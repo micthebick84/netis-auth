@@ -57,7 +57,7 @@ class RegistrationDisabledTest {
     }
 
     @Test
-    @DisplayName("가입 차단 시 로그인 화면에 회원가입 링크가 없다")
+    @DisplayName("가입 차단 시 로그인 화면에 계정 신청 링크가 없다")
     void loginPage_hidesRegisterLink() throws Exception {
         mockMvc.perform(get("/login"))
                 .andExpect(status().isOk())
